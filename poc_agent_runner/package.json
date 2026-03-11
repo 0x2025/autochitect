@@ -11,7 +11,7 @@
     "test:grounding": "ts-node src/index.ts --test-grounding",
     "validate:registry": "ts-node scripts/validate_registry.ts",
     "build": "tsc",
-    "build:docker": "esbuild src/index.ts --bundle --platform=node --target=node20 --outdir=dist"
+    "build:docker": "esbuild src/index.ts --bundle --platform=node --target=node20 --outdir=dist --packages=external"
   },
   "dependencies": {
     "@langchain/core": "^0.3.80",
