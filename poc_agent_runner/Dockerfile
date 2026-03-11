@@ -23,8 +23,8 @@ RUN pnpm install
 # Copy source code
 COPY . .
 
-# Build TypeScript to JS
-RUN pnpm run build
+# Build TypeScript to JS using optimized esbuild for speed and low memory
+RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm run build:docker
 
 # Prune development dependencies to keep the image lean
 RUN pnpm prune --prod

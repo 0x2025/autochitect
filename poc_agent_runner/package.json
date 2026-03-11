@@ -10,7 +10,8 @@
     "test:regression": "NODE_OPTIONS='--max-old-space-size=6144' ts-node --transpile-only tests/regression_eval.ts",
     "test:grounding": "ts-node src/index.ts --test-grounding",
     "validate:registry": "ts-node scripts/validate_registry.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "build:docker": "esbuild src/index.ts --bundle --platform=node --target=node20 --outdir=dist"
   },
   "dependencies": {
     "@langchain/core": "^0.3.80",

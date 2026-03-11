@@ -5,8 +5,9 @@ import simpleGit from "simple-git";
 import * as fs from "fs";
 import * as path from "path";
 import { execSync } from "child_process";
+import { StructuredToolInterface } from "@langchain/core/tools";
 
-export function createFileSystemTools(localPath: string) {
+export function createFileSystemTools(localPath: string): StructuredToolInterface[] {
     const resolvePath = (relativePath: string): string | null => {
         const fullPath = path.join(localPath, relativePath);
         if (fs.existsSync(fullPath)) return fullPath;
@@ -25,7 +26,7 @@ export function createFileSystemTools(localPath: string) {
     };
 
     const readFileTool = tool(
-        async ({ relativePath }: any) => {
+        async ({ relativePath }: { relativePath: string }): Promise<string> => {
             const fullPath = resolvePath(relativePath);
             if (!fullPath || !fullPath.startsWith(localPath)) return `File not found: ${relativePath}`;
             if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
@@ -41,7 +42,7 @@ export function createFileSystemTools(localPath: string) {
     );
 
     const listDirTool = tool(
-        async ({ relativePath, ignoreDirs }: any) => {
+        async ({ relativePath, ignoreDirs }: { relativePath: string; ignoreDirs?: string[] }): Promise<string> => {
             const fullPath = resolvePath(relativePath === "." ? "" : relativePath);
             if (!fullPath || !fullPath.startsWith(localPath)) return `Directory not found: ${relativePath}`;
             if (fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory()) {
@@ -65,7 +66,7 @@ export function createFileSystemTools(localPath: string) {
     );
 
     const searchCodebaseTool = tool(
-        async ({ query, fileExtension }: any) => {
+        async ({ query, fileExtension }: { query: string; fileExtension?: string }): Promise<string> => {
             try {
                 const extFilter = fileExtension ? `-- "*.${fileExtension.replace(/^\./, '')}"` : "";
                 const cmd = `git grep -i -I -n "${query}" ${extFilter}`;
@@ -91,7 +92,7 @@ export function createFileSystemTools(localPath: string) {
     );
 
     const getRepositoryMapTool = tool(
-        async () => {
+        async (): Promise<string> => {
             try {
                 const output = execSync("git ls-files", { cwd: localPath, encoding: "utf-8" }).trim();
                 const lines = output.split('\n');
@@ -111,7 +112,7 @@ export function createFileSystemTools(localPath: string) {
     );
 
     const getComponentDetailsAstTool = tool(
-        async ({ relativePath }: any) => {
+        async ({ relativePath }: { relativePath: string }): Promise<string> => {
             const fullPath = resolvePath(relativePath);
             if (!fullPath || !fs.existsSync(fullPath)) return `File not found: ${relativePath}`;
             try {
@@ -177,7 +178,7 @@ export function createFileSystemTools(localPath: string) {
     );
 
     const findInfrastructureSignalsTool = tool(
-        async () => {
+        async (): Promise<string> => {
             const signals = [
                 "docker-compose.yml", "Dockerfile", "Terraform", ".env", "appsettings.json",
                 "package.json", "pom.xml", ".csproj", "go.mod", "requirements.txt"
