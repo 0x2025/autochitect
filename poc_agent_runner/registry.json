@@ -1,0 +1,487 @@
+[
+    {
+        "expert_id": "DOTNET_EXPERT",
+        "specialties": [
+            "Clean Architecture",
+            "SOLID",
+            "ASP.NET Core",
+            "Entity Framework",
+            "Web APIs"
+        ],
+        "triggers": {
+            "file_patterns": [
+                ".cs",
+                ".csproj",
+                ".sln",
+                "Program.cs",
+                "Startup.cs"
+            ],
+            "dependency_match": [
+                "Microsoft.NET",
+                "Microsoft.AspNetCore"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".cs",
+                ".csproj",
+                ".sln",
+                ".json",
+                ".xml",
+                ".config"
+            ]
+        },
+        "expert_prompt_ref": "Elite .NET Architectural Expert. Focus on Clean Architecture, SOLID, and NFRs (Performance/Scalability).",
+        "tools": [
+            "read_file",
+            "list_directory",
+            "search_codebase",
+            "get_repository_map",
+            "get_component_details_ast",
+            "find_infrastructure_signals"
+        ]
+    },
+    {
+        "expert_id": "CLEAN_CODE_EXPERT",
+        "specialties": [
+            "Code Quality",
+            "DRY/YAGNI",
+            "Refactoring",
+            "Naming Conventions",
+            "Maintainability"
+        ],
+        "triggers": {
+            "file_patterns": [
+                ".cs"
+            ],
+            "dependency_match": [
+                "Microsoft.NET"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".cs",
+                ".md"
+            ]
+        },
+        "expert_prompt_ref": "Specialist in Clean Code & Readability. Audit naming conventions, function sizes, DRY/YAGNI violations.",
+        "tools": [
+            "read_file",
+            "list_directory",
+            "get_component_details_ast"
+        ]
+    },
+    {
+        "expert_id": "DI_EXPERT",
+        "specialties": [
+            "Dependency Injection",
+            "Inversion of Control",
+            "Service Lifetimes",
+            "Modular Decoupling"
+        ],
+        "triggers": {
+            "file_patterns": [
+                "Startup.cs",
+                "Program.cs",
+                ".cs"
+            ],
+            "dependency_match": [
+                "Microsoft.Extensions.DependencyInjection"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".cs",
+                ".json"
+            ]
+        },
+        "expert_prompt_ref": "Dependency Injection Specialist. Audit service lifetimes and circular dependencies.",
+        "tools": [
+            "read_file",
+            "search_codebase",
+            "get_component_details_ast"
+        ]
+    },
+    {
+        "expert_id": "MODULE_DESIGN_EXPERT",
+        "specialties": [
+            "Modular Monolith",
+            "Package Boundaries",
+            "Encapsulation",
+            "Subsystem Inter-dependencies"
+        ],
+        "triggers": {
+            "file_patterns": [
+                "Module.cs",
+                ".csproj"
+            ],
+            "dependency_match": [
+                "SimplCommerce"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".cs",
+                ".csproj"
+            ]
+        },
+        "expert_prompt_ref": "Module Design & Domain Specialist. Audit module boundaries and encapsulation.",
+        "tools": [
+            "read_file",
+            "list_directory",
+            "get_repository_map",
+            "find_infrastructure_signals"
+        ]
+    },
+    {
+        "expert_id": "OWASP_EXPERT",
+        "specialties": [
+            "Web Security",
+            "Injection Prevention",
+            "Authentication/Authorization",
+            "Sensitive Data Protection"
+        ],
+        "triggers": {
+            "file_patterns": [
+                ".cs",
+                ".cshtml",
+                ".js"
+            ],
+            "dependency_match": [
+                "Microsoft.AspNetCore.Authentication",
+                "IdentityServer"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".cs",
+                ".cshtml",
+                ".json",
+                ".js"
+            ]
+        },
+        "expert_prompt_ref": "OWASP Top 10 Security Expert. Audit for Injection, Broken Auth, and XSS.",
+        "tools": [
+            "read_file",
+            "search_codebase",
+            "find_infrastructure_signals"
+        ]
+    },
+    {
+        "expert_id": "PENTEST_EXPERT",
+        "specialties": [
+            "Infrastructure Security",
+            "Container Security",
+            "Secret Management",
+            "Exploitability Analysis"
+        ],
+        "triggers": {
+            "file_patterns": [
+                ".cs",
+                "Dockerfile",
+                ".sh",
+                ".so",
+                ".dll"
+            ],
+            "dependency_match": [
+                "Authentication",
+                "Authorization"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".cs",
+                "Dockerfile",
+                ".sh",
+                ".json"
+            ]
+        },
+        "expert_prompt_ref": "Penetration Testing Expert. MANDATORY: You MUST read the 'Dockerfile', 'appsettings.json', and 'docker-compose.yml' if they exist. Use your tools (read_file) to find the EXACT lines. Audit for insecure binary sources (curl/wget from untrusted URLs) and plain-text secrets. You MUST provide a DEFINITIVE 'FAIL' verdict with evidence if these exist. Do NOT give 'unknown' or 'investigation needed' verdicts.",
+        "tools": [
+            "read_file",
+            "list_directory",
+            "search_codebase",
+            "find_infrastructure_signals"
+        ]
+    },
+    {
+        "expert_id": "CSHARP_EXPERT",
+        "specialties": [
+            "C# Language Features",
+            "LINQ",
+            "Async/Await Patterns",
+            "Memory Management",
+            "NuGet Packages"
+        ],
+        "triggers": {
+            "file_patterns": [
+                ".cs"
+            ],
+            "dependency_match": [
+                "Microsoft.NET"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".cs"
+            ]
+        },
+        "expert_prompt_ref": "C# Language & Idioms Specialist. Audit for modern C# features and async/await usage.",
+        "tools": [
+            "read_file",
+            "get_component_details_ast"
+        ]
+    },
+    {
+        "expert_id": "CSHARP_DESIGN_EXPERT",
+        "specialties": [
+            "Structural Patterns",
+            "Behavioral Patterns",
+            "Creational Patterns",
+            "Domain Logic organization"
+        ],
+        "triggers": {
+            "file_patterns": [
+                ".cs"
+            ],
+            "dependency_match": [
+                "Microsoft.NET"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".cs"
+            ]
+        },
+        "expert_prompt_ref": "C# Design Patterns Expert. Audit for implementation of SOLID and architectural patterns.",
+        "tools": [
+            "read_file",
+            "get_repository_map",
+            "get_component_details_ast"
+        ]
+    },
+    {
+        "expert_id": "DDD_EXPERT",
+        "specialties": [
+            "Domain Driven Design",
+            "Bounded Contexts",
+            "Aggregates/Entities",
+            "Value Objects",
+            "Ubiquitous Language"
+        ],
+        "triggers": {
+            "file_patterns": [
+                ".cs",
+                ".java",
+                ".ts"
+            ],
+            "dependency_match": [
+                "Domain",
+                "Models"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".cs",
+                ".java",
+                ".ts"
+            ]
+        },
+        "expert_prompt_ref": "Domain-Driven Design (DDD) Specialist. Audit for domain leakages, aggregate boundaries, and alignment with DDD tactical patterns.",
+        "tools": [
+            "read_file",
+            "list_directory",
+            "search_codebase",
+            "get_component_details_ast"
+        ]
+    },
+    {
+        "expert_id": "CLOUD_NATIVE_EXPERT",
+        "specialties": [
+            "Kubernetes/K8s",
+            "Cloud Infrastructure (AWS/Azure/GCP)",
+            "Twelve-Factor App",
+            "Observability",
+            "Resiliency Patterns"
+        ],
+        "triggers": {
+            "file_patterns": [
+                "Dockerfile",
+                "docker-compose.yml",
+                ".yaml",
+                ".yml",
+                ".tf"
+            ],
+            "dependency_match": [
+                "Cloud",
+                "Infrastructure"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                "Dockerfile",
+                ".yaml",
+                ".yml",
+                ".tf",
+                ".json"
+            ]
+        },
+        "expert_prompt_ref": "Cloud-Native & Reliability Engineer. Audit for cloud best practices, container orchestration issues, observability (logs/metrics/traces), and fault tolerance.",
+        "tools": [
+            "read_file",
+            "list_directory",
+            "search_codebase",
+            "find_infrastructure_signals"
+        ]
+    },
+    {
+        "expert_id": "JAVA_EXPERT",
+        "specialties": [
+            "Spring Boot",
+            "Hibernate/JPA",
+            "JVM Tuning",
+            "Maven/Gradle"
+        ],
+        "triggers": {
+            "file_patterns": [
+                ".java",
+                "pom.xml",
+                "build.gradle"
+            ],
+            "dependency_match": [
+                "org.springframework",
+                "javax.persistence"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".java",
+                ".xml",
+                ".properties",
+                ".gradle",
+                ".yml",
+                ".yaml"
+            ]
+        },
+        "expert_prompt_ref": "Elite Java Architect. Expert in Spring Boot, Hibernate, and Microservices.",
+        "tools": [
+            "read_file",
+            "list_directory",
+            "search_codebase",
+            "get_repository_map",
+            "get_component_details_ast",
+            "find_infrastructure_signals"
+        ]
+    },
+    {
+        "expert_id": "NODE_EXPERT",
+        "specialties": [
+            "NestJS",
+            "Event Loop",
+            "TypeScript",
+            "Express",
+            "npm/yarn"
+        ],
+        "triggers": {
+            "file_patterns": [
+                ".js",
+                ".ts",
+                "package.json"
+            ],
+            "dependency_match": [
+                "express",
+                "nest",
+                "react",
+                "next"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".js",
+                ".ts",
+                ".tsx",
+                ".json",
+                ".yml",
+                ".yaml",
+                ".md"
+            ]
+        },
+        "expert_prompt_ref": "Elite Node.js/TypeScript Architect. Expert in Event Loop management and NestJS.",
+        "tools": [
+            "read_file",
+            "list_directory",
+            "search_codebase",
+            "get_repository_map",
+            "get_component_details_ast",
+            "find_infrastructure_signals"
+        ]
+    },
+    {
+        "expert_id": "MERMAID_EXPERT",
+        "specialties": [
+            "Mermaid.js",
+            "C4 Model Visualization",
+            "Diagram as Code",
+            "Architectural Visuals"
+        ],
+        "triggers": {
+            "file_patterns": [
+                "*"
+            ],
+            "dependency_match": [
+                "*"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".md",
+                ".mmd"
+            ]
+        },
+        "expert_prompt_ref": "Mermaid C4 Visualization Expert. Your goal is to translate architectural findings (L1-L4) into valid Mermaid.js C4 diagrams. You MUST ensure syntax correctness for 'C4Context', 'C4Container', 'C4Component', and optional code-level class diagrams. ALWAYS provide the diagrams within markdown code blocks (```mermaid).",
+        "tools": [
+            "read_file"
+        ]
+    },
+    {
+        "expert_id": "LEAD_ARCHITECT_EXPERT",
+        "specialties": [
+            "C4 Modeling",
+            "System Integration",
+            "Architectural Governance",
+            "Risk Mitigation"
+        ],
+        "triggers": {
+            "file_patterns": [
+                "*"
+            ],
+            "dependency_match": [
+                "*"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".cs",
+                ".java",
+                ".js",
+                ".ts",
+                ".tsx",
+                ".json",
+                ".xml",
+                ".yml",
+                ".yaml",
+                ".md",
+                "Dockerfile"
+            ]
+        },
+        "expert_prompt_ref": "Lead Architect & Autonomous Synthesizer. Your role is to aggregate findings from all specialist experts into a final C4 Architectural Report. Use your tools to resolve contradictions, verify high-level system boundaries (L1/L2), and perform a final evidence check on the most critical NFR violations.",
+        "tools": [
+            "read_file",
+            "list_directory",
+            "search_codebase",
+            "get_repository_map",
+            "get_component_details_ast",
+            "find_infrastructure_signals"
+        ]
+    }
+]

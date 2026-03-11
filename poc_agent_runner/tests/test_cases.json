@@ -1,0 +1,11 @@
+[
+    {
+        "repo_url": "https://github.com/simplcommerce/SimplCommerce",
+        "expected_findings": [
+            "secret",
+            "untrusted",
+            "libwkhtmltox",
+            "async"
+        ]
+    }
+]

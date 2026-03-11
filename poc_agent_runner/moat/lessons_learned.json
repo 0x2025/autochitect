@@ -1,0 +1,33 @@
+[
+  {
+    "lesson_id": "L001",
+    "tech_stack": [
+      ".net",
+      "asp.net core"
+    ],
+    "violation_type": "SECURITY_RISK",
+    "pattern": "secret management in appsettings.json",
+    "rationale": "Storing OAuth secrets or connection strings in plain text in config files leads to credential exposure. Use Azure Key Vault or Environment Variables.",
+    "human_verdict": "CORRECT"
+  },
+  {
+    "lesson_id": "L002",
+    "tech_stack": [
+      "docker"
+    ],
+    "violation_type": "SECURITY_RISK",
+    "pattern": "untrusted binary sources in Dockerfile",
+    "rationale": "Downloading binaries via curl/wget from unverified URLs (like raw github) is an attack vector. Use verified package managers or checksums.",
+    "human_verdict": "CORRECT"
+  },
+  {
+    "lesson_id": "L003",
+    "tech_stack": [
+      ".net"
+    ],
+    "violation_type": "PERFORMANCE_BOTTLENECK",
+    "pattern": "synchronous database operations",
+    "rationale": "Blocking calls in high-traffic ASP.NET Core paths leads to thread pool starvation. Always use async/await (e.g. ToListAsync).",
+    "human_verdict": "CORRECT"
+  }
+]

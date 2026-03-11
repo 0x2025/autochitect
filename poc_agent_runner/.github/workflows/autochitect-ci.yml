@@ -1,0 +1,55 @@
+name: Autochitect CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm install
+      - name: Validate Expert Registry
+        run: npm run validate:registry
+
+  regression:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm install
+      - name: Run Regression Evaluation
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          # Use the specialized regression eval script
+          # We use --max-old-space-size for heavy LLM context processing
+          NODE_OPTIONS="--max-old-space-size=6144" npx ts-node --transpile-only tests/regression_eval.ts
+
+  docker-release:
+    needs: regression
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u sangcungoc --password-stdin
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t sangcungoc/autochitect:latest .
+          docker push sangcungoc/autochitect:latest

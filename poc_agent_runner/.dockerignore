@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log
+dist
+.test-workspace
+.git
+.env
+.antigravity
+brain
+*.md
+/tmp/autochitect
