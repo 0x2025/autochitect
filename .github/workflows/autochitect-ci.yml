@@ -15,26 +15,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: poc_agent_runner/pnpm-lock.yaml
       - name: Install dependencies
-        run: npm install
+        run: pnpm install
       - name: Validate Expert Registry
-        run: npm run validate:registry
+        run: pnpm run validate:registry
 
   regression:
     needs: validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: poc_agent_runner/pnpm-lock.yaml
       - name: Install dependencies
-        run: npm install
+        run: pnpm install
       - name: Run Regression Evaluation
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
