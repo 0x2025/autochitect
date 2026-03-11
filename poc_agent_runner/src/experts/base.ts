@@ -1,11 +1,33 @@
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { createLLM } from "../models";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import * as path from "path";
 import * as fs from "fs";
 import { AgentState, getRegistry, getLessons, getModelForTask, Lesson } from "../config";
 import { createFileSystemTools } from "../tools";
 import { z } from "zod";
+
+/**
+ * Schema for the synthesized Architectural Report.
+ */
+const ReportSchema = z.object({
+    health: z.enum(["POOR", "FAIR", "GOOD"]).describe("Overall architectural health verdict."),
+    summary: z.string().describe("High-level executive summary of the architecture and findings."),
+    diagrams: z.object({
+        c1: z.string().describe("Mermaid C4 System Context diagram."),
+        c2: z.string().describe("Mermaid C4 Container diagram."),
+        c3: z.string().describe("Mermaid C4 Component diagram.")
+    }).describe("C4 Model diagrams in Mermaid format."),
+    findings: z.array(z.object({
+        id: z.string().describe("Unique identifier for the finding (e.g., finding_1)."),
+        criticality: z.enum(["CRITICAL", "HIGH", "MEDIUM", "LOW"]).describe("Severity of the issue."),
+        title: z.string().describe("Short, descriptive title."),
+        description: z.string().describe("Detailed explanation of the observation."),
+        impact: z.string().describe("Potential consequences for the system."),
+        files: z.array(z.string()).describe("List of relative file paths associated with this finding."),
+        recommendation: z.string().describe("Actionable advice to resolve the issue.")
+    })).describe("List of specific architectural and security findings.")
+});
 
 /**
  * Unified Architect Expert Execution Logic.
@@ -15,7 +37,7 @@ export async function executeArchitectExpert(
     expertId: string,
     state: typeof AgentState.State,
     type: "SPECIALIST" | "LEAD"
-): Promise<string> {
+): Promise<string | any> {
     const registry = getRegistry();
     const blueprint = registry.find(b => b.expert_id === expertId) || {
         expert_id: expertId,
@@ -24,17 +46,15 @@ export async function executeArchitectExpert(
     } as any;
 
     const tools = createFileSystemTools(state.localPath);
-    const llm = new ChatGoogleGenerativeAI({
-        modelName: getModelForTask("HIGH"),
-        temperature: type === "LEAD" ? 0.1 : 0.2
+    const llm = createLLM(type === "LEAD" ? "HIGH" : "LOW", {
+        provider: state.provider as any,
+        model: state.model
     });
 
-    const lessons = await retrieveRelevantLessons(state.discoveryResult);
+    const lessons = await retrieveRelevantLessons(state.discoveryResult, state);
     const lessonPrompt = lessons.map(l =>
         `Institutional Lesson: ${l.pattern}\nRationale: ${l.rationale}\nVerdict: ${l.human_verdict}`
     ).join("\n\n");
-
-    const architectAgent = createReactAgent({ llm, tools });
 
     let basePrompt = `Expert Profile: ${blueprint.expert_prompt_ref}\n\n`;
 
@@ -61,11 +81,19 @@ AUDIT MANDATE:
 3. NO SUMMARIZATION LOSS: You are prohibited from summarizing away specific vulnerabilities. They MUST appear in your final L4 Code section with exact file paths and evidence.
 4. EXHAUSTIVE COVERAGE: Ensure all critical security and NFR findings from specialists are included.
 5. VERBATIM POLICIES: When an expert finding matches an "ARCHITECTURAL POLICY (MOAT)", you MUST use the exact policy pattern name (e.g., "untrusted binary sources in Dockerfile") in your verdict.
-6. VISUAL ARCHITECTURE: You MUST look for Mermaid C4 diagrams from the MERMAID_EXPERT. Embed these diagrams (C1 System, C2 Container, C3 Component) at the beginning of their respective sections. Ensure they are wrapped in \\\`\\\`\\\`mermaid blocks.
+6. VISUAL ARCHITECTURE: You MUST look for Mermaid C4 diagrams from the MERMAID_EXPERT.
 7. CROSS-VERIFICATION: If an expert finding lacks a clear file path, use 'search_codebase' to confirm it yourself.
 8. Provide a final overall "Architectural Health" verdict.`;
-    } else {
-        basePrompt += `Your goal is to perform a [C4 Level 3 & 4] Deep-Dive on specific Containers or Components identified in the Discovery Report.
+
+        const structuredLlm = llm.withStructuredOutput(ReportSchema);
+        console.log(`\n[Node: ${expertId}] Synthesizing Final Structured Report...`);
+
+        return await structuredLlm.invoke(basePrompt);
+    }
+
+    const architectAgent = createReactAgent({ llm, tools });
+
+    basePrompt += `Your goal is to perform a [C4 Level 3 & 4] Deep-Dive on specific Containers or Components identified in the Discovery Report.
 
 ====== DISCOVERY CONTEXT ======
             ${state.discoveryResult}
@@ -83,11 +111,10 @@ AUDIT MANDATE:
 5. Cite file paths and provide evidence-based verdicts.
 
 Audit for: Modular Integrity, Decoupling, SOLID, and NFR execution.`;
-    }
 
-    const systemInstruction = new SystemMessage(`You are ${type === "LEAD" ? "the Lead Architect" : "an elite architectural specialist"}. Your responsibility is to ensure the output is accurate, grounded in actual code, and follows the C4 hierarchy.`);
+    const systemInstruction = new SystemMessage(`You are an elite architectural specialist. Your responsibility is to ensure the output is accurate, grounded in actual code, and follows the C4 hierarchy.`);
 
-    console.log(`\n[Node: ${expertId}] ${type === "LEAD" ? "Synthesizing Final Report" : "Initiating Deep Dive"}...`);
+    console.log(`\n[Node: ${expertId}] Initiating Deep Dive...`);
     const runResult = await architectAgent.invoke({
         messages: [systemInstruction, new HumanMessage(basePrompt)]
     });
@@ -99,23 +126,19 @@ Audit for: Modular Integrity, Decoupling, SOLID, and NFR execution.`;
     const grounding = validateEvidence(output, state.localPath, extensions);
     if (!grounding.isValid) {
         console.log(`[Node: ${expertId}] Grounding failure detected: ${grounding.error}`);
-        if (type === "LEAD") {
-            // Lead Architect should try harder or at least report the error gracefully in the analysis result
-            return `CRITICAL: Lead Architect Synthesis failed grounding verification: ${grounding.error}. Please check specialist reports directly.`;
-        }
         return `[${expertId}] Audit aborted due to evidence hallucination: ${grounding.error}`;
     }
 
     return output;
 }
 
-async function retrieveRelevantLessons(discoveryResult: string): Promise<Lesson[]> {
+async function retrieveRelevantLessons(discoveryResult: string, state: typeof AgentState.State): Promise<Lesson[]> {
     const allLessons = getLessons();
     if (allLessons.length === 0) return [];
 
-    const llm = new ChatGoogleGenerativeAI({
-        modelName: getModelForTask("LOW"),
-        temperature: 0.1
+    const llm = createLLM("LOW", {
+        provider: state.provider as any,
+        model: state.model
     });
 
     console.log(`[Knowledge Moat] Semantically matching institutional lessons...`);

@@ -1,8 +1,17 @@
 {
-  "name": "poc_agent_runner",
-  "version": "1.0.0",
-  "description": "Proof of concept for the LangGraph-based Execution Runner",
-  "main": "src/index.ts",
+  "name": "autochitect",
+  "version": "1.1.0",
+  "description": "Autonomous AI Architect for codebase analysis and C4 reporting",
+  "main": "dist/index.js",
+  "bin": {
+    "autochitect": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "registry.json",
+    "moat",
+    "README.md"
+  ],
   "scripts": {
     "start": "ts-node src/index.ts",
     "seed": "ts-node src/seed.ts",
@@ -11,12 +20,19 @@
     "test:grounding": "ts-node src/index.ts --test-grounding",
     "validate:registry": "ts-node scripts/validate_registry.ts",
     "build": "tsc",
-    "build:docker": "esbuild src/index.ts --bundle --platform=node --target=node20 --outdir=dist --packages=external"
+    "build:cli": "esbuild src/cli.ts src/index.ts --bundle --platform=node --target=node20 --outdir=dist --packages=external",
+    "build:docker": "esbuild src/index.ts --bundle --platform=node --target=node20 --outdir=dist --packages=external",
+    "prepublishOnly": "npm run build:cli"
   },
   "dependencies": {
-    "@langchain/core": "^0.3.80",
-    "@langchain/google-genai": "^0.1.12",
-    "@langchain/langgraph": "^0.2.74",
+    "@langchain/anthropic": "^1.3.22",
+    "@langchain/core": "^1.1.30",
+    "@langchain/google-genai": "^2.1.24",
+    "@langchain/google-vertexai": "^2.1.24",
+    "@langchain/langgraph": "^1.2.2",
+    "@langchain/ollama": "^1.2.6",
+    "@langchain/openai": "^1.2.12",
+    "commander": "^14.0.3",
     "dotenv": "^16.6.1",
     "simple-git": "^3.32.3",
     "tree-sitter": "^0.21.0",

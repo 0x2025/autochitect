@@ -65,3 +65,26 @@ jobs:
         run: |
           docker build -t sangcungoc/autochitect:latest .
           docker push sangcungoc/autochitect:latest
+
+  npm-release:
+    needs: regression
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'pnpm'
+          cache-dependency-path: poc_agent_runner/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install
+      - name: Build and Publish to NPM
+        run: pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_NPM }}

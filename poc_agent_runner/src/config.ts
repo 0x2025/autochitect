@@ -26,10 +26,18 @@ export const AgentState = Annotation.Root({
         default: () => []
     }),
     analysisResult: Annotation<string>(),
+    structuredAnalysisResult: Annotation<any>({
+        reducer: (curr, next) => next || curr,
+        default: () => null
+    }),
+    // LLM Configuration
+    provider: Annotation<string | undefined>(),
+    model: Annotation<string | undefined>(),
 });
 
 export interface ExpertBlueprint {
     expert_id: string;
+    specialties: string[];
     triggers: {
         file_patterns: string[];
         dependency_match: string[];

@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files first to leverage cache for dependencies
 COPY package.json pnpm-lock.yaml* ./
 
 # Enable corepack and install pnpm 10
@@ -20,11 +20,13 @@ RUN corepack enable && corepack prepare pnpm@10 --activate
 # Install ALL dependencies including devDependencies for build
 RUN pnpm install
 
-# Copy source code
-COPY . .
+# Copy source code and registry explicitly to invalidate cache on changes
+COPY src ./src
+COPY registry.json tsconfig.json ./
+COPY moat ./moat
 
-# Build TypeScript to JS using optimized esbuild for speed and low memory
-RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm run build:docker
+# Build TypeScript to JS using optimized esbuild
+RUN rm -rf dist && pnpm run build:docker
 
 # Prune development dependencies to keep the image lean
 RUN pnpm prune --prod
@@ -44,8 +46,10 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/registry.json ./
 COPY --from=builder /app/moat/lessons_learned.json ./moat/
 
-# Create a workspace directory for cloning repos
-RUN mkdir -p /tmp/autochitect && chown -R node:node /tmp/autochitect
+# Create workspace and output directories with global write permissions for volume safety
+RUN mkdir -p /tmp/autochitect /app/output && \
+    chmod -R 777 /tmp/autochitect /app/output && \
+    chown -R node:node /tmp/autochitect /app/output
 
 USER node
 

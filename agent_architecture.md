@@ -45,8 +45,8 @@ The Registry is enriched through three primary channels, ensuring it stays ahead
 
 **Tech Stack:**
 *   **Infrastructure:** "Bring Your Own Runner" (BYOR) model. Runs locally on the user's/founder's own Mac/PC. This drives initial compute costs for massive code parsing to precisely zero while scaling infinitely.
-*   **Daemon:** A lightweight Node.js/Go worker that listens to the Cloud Pub/Sub queue.
-*   **Isolation Engine:** Docker Engine (Host machine).
+*   **Daemon:** A lightweight Node.js/Go worker OR the **npm-distributable CLI** (`npx autochitect`).
+*   **Isolation Engine:** Docker Engine (Host machine) or host-native (for local directory audits).
 
 **Key Design Decisions:**
 *   **Ephemeral Isolation:** The worker daemon executes a unique Docker container (`docker run --rm`) for every job. Once the API returns the result, the container—and the client's cloned codebase—is instantly wiped from the disk.
@@ -58,14 +58,16 @@ The Registry is enriched through three primary channels, ensuring it stays ahead
 **Role:** The LangChain state machine running inside the isolated Docker container that controls the actual code analysis.
 
 **Tech Stack:** 
-*   **Framework:** LangChain JS (TypeScript) + Provider-Agnostic LLM Router (e.g., `@langchain/core` or Vercel AI SDK Core).
+*   **Framework:** LangChain JS (TypeScript) + **Multi-Provider LLM Factory** (Supporting Gemini, Claude, OpenAI, Vertex AI, and Ollama).
 *   **Dynamic Expert Routing:** Unlike traditional static switch-cases, the router queries the SaaS Registry to spawn agents based on detected tech vectors.
+*   **Target Ingestion:** Supports both **Secure Git Cloning** and **Native Local Directory Analysis** (automatic heuristic detection).
 *   **Static Parsing:** `tree-sitter-cli` using queries downloaded dynamically from the Registry.
 
 **Execution Flow:**
-1.  **Code Ingestion:** Container clones the target repository securely.
+1.  **Code Ingestion:** Container clones the target repository OR skips cloning if a local directory is detected.
 2.  **Phase A: Language Detection & Parsing:** Agent scans the file tree and maps extensions to `tree-sitter` grammar binaries to generate an Abstract Syntax Tree (AST).
 3.  **Phase B: Querying the Topology (LLM Autopilot):** Instead of dumping 50,000 files into an LLM context window, we give the LangChain Orchestrator an "Autopilot Mode".
+    *   **Infrastructure Signals:** The agent uses `find_infrastructure_signals` to locate Docker, IaC, and manifests, quickly inferring L1/L2 boundaries.
     *   The LLM dynamically writes its own S-expression queries (`run_tree_sitter_query(query)`).
     *   It queries for boundaries like module declarations, `import` dependencies, HTTP integrations, and class structures.
 4.  **Phase C: Symbol Graph Compression:** The raw AST is stripped of comments, loops, and logic, reducing it into a minified "Symbol Graph" JSON topology map.
@@ -75,6 +77,7 @@ The Registry is enriched through three primary channels, ensuring it stays ahead
     *   **Model Routing:** Cheap models (Gemini-Flash) are used for mapping; premium models (Claude 3.5 Sonnet) are used for this final high-precision architectural critique.
 6.  **Phase E: Evidence Grounding & The Reflection Loop:**
     *   **Evidence Grounding:** Every finding MUST pass a deterministic check: `file_exists(path)` and `code_exists(snippet)`. Hallucinated citations trigger an automatic re-prompt.
+    *   **Visual C4 Reporting:** The agent is required to synthesize findings into live **Mermaid.js C1-C4 diagrams**, embedded directly in the report for immediate structural visualization.
     *   The validated report is submitted to the **Challenger** node for final cross-check against the **Lesson Store**.
 7.  **Artifact Generation:** Final reports are pushed to the SaaS database via webhook.
 
@@ -108,13 +111,11 @@ To ensure the agent actually improves over time rather than just accumulating a 
 1.  **Anti-Regression (The Challenger Node):** 
     The `Challenger` node (Section 4.1) is upgraded to query the Lesson Store *before* validating an expert's draft. If the expert proposes a finding that matches a known `FALSE_POSITIVE` lesson, the Challenger rejects the draft immediately, forcing the Expert to find a different, valid approach.
 
-2.  **Heuristic Generalization:**
-    Instead of just matching exact files, the `Distiller Agent` looks for patterns across lessons. 
-    *   *Evolution:* "False positive in `login.html`" → "Templates using `th:action` in Spring projects with `WebSecurityConfig` are handled globally." 
-    *   This generalizes the knowledge so it applies to new files the agent hasn't seen yet.
-
+2.  **Semantic Lesson Retrieval:**
+    *   Instead of exact keyword matching, we use **LLM-based semantic relevance** to select lessons. 
+    *   The agent summarizes its initial discovery report and uses it to query the Lesson Store, ensuring that even nuanced architectural patterns are retrieved and applied.
 3.  **Rubric Refinement via 'Ask Software Expert':**
-    The `ask_software_expert` tool (Step 2 in Expert Node) is modified to include project-specific heuristics. The "Virtual Expert" doesn't just give generic advice; it gives advice tailored by the human's previous feedback on that specific codebase.
+    *   The `ask_software_expert` tool is modified to include project-specific heuristics. The "Virtual Expert" doesn't just give generic advice; it gives advice tailored by previous human feedback.
 
 ---
 
@@ -260,13 +261,31 @@ We avoid passing massive conversation histories. We use a **"Summarized Context"
 
 ---
 
+### 10.4 Optimized Build Path (esbuild)
+We use `esbuild` for production builds (`build:docker`). This replacement for `tsc` is 100x faster and operates with a significantly lower memory footprint, ensuring stability in resource-constrained CI/CD environments.
+
 ---
 
-## 11. Data Persistence & Storage Strategy
+## 11. Production-Grade Hardening
+
+To support enterprise-scale automation, Autochitect implements several stability patterns:
+
+### 11.1 OCI-Native & CLI Distribution (pnpm 10 & npm)
+We leverage **pnpm 10** for deterministic builds and package the agent as a **distributable CLI tool** on NPM. This allows users to run analysis in ANY environment (Local, Docker, CI) via `npx autochitect`.
+
+### 11.2 Automated Registry Validation
+The Expert Registry is protected by a mandatory CI validation step (`scripts/validate_registry.ts`). This ensures Expert Blueprints always adhere to the required JSON schema, preventing runtime agent crashes due to malformed metadata.
+
+### 11.3 Memory Leak & Event Hardening
+The agent runner is hardened against `MaxListenersExceededWarning` by increasing the `AbortSignal` listener limit to 50. This provides safe headroom for massive, concurrent expert audits within the LangGraph state machine.
+
+---
+
+## 12. Data Persistence & Storage Strategy
 
 Autochitect adopts a **Unified Postgres Strategy** to minimize operational complexity and infrastructure costs.
 
-### 11.1 The Source of Truth (PostgreSQL + pgvector)
+### 12.1 The Source of Truth (PostgreSQL + pgvector)
 **Role:** A single, robust database for all metadata, job state, and semantic memory.
 - **Relational Tables:** `Users`, `Organizations`, `Repositories`, `JobStatus`, `Reports`.
 - **Vector Intelligence (`pgvector`):** We store vectorized **Lesson Shards** and **Feedback Rationales** within the same Postgres instance.

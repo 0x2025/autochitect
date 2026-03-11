@@ -3,6 +3,7 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import { AgentState, getModelForTask } from "./config";
+import { createLLM } from "./models";
 import { createFileSystemTools } from "./tools";
 import { executeArchitectExpert } from "./experts/base";
 
@@ -12,10 +13,11 @@ import { executeArchitectExpert } from "./experts/base";
 export async function discoveryNode(state: typeof AgentState.State) {
     console.log(`\n[Node: Discovery] Initiating Autonomous File Explorer...`);
     const tools = createFileSystemTools(state.localPath);
-    const llm = new ChatGoogleGenerativeAI({
-        modelName: getModelForTask("LOW"),
+    const llm = createLLM("LOW", {
+        provider: state.provider as any,
+        model: state.model || getModelForTask("LOW"),
         temperature: 0.1
-    });
+    }) as ChatGoogleGenerativeAI;
 
     const discoveryAgent = createReactAgent({ llm, tools });
     const prompt = `You are an autonomous C4 Scout (Architectural Discovery Agent). 
@@ -65,10 +67,11 @@ export async function expertAgentNode(state: typeof AgentState.State) {
 export async function criticAgentNode(state: typeof AgentState.State) {
     console.log(`\n[Node: Auditor] Enforcing Architectural Lessons...`);
     const combinedReports = state.expertReports.join("\n\n");
-    const llm = new ChatGoogleGenerativeAI({
-        modelName: getModelForTask("HIGH"),
+    const llm = createLLM("HIGH", {
+        provider: state.provider as any,
+        model: state.model || getModelForTask("HIGH"),
         temperature: 0.1
-    });
+    }) as ChatGoogleGenerativeAI;
 
     const { getLessons } = require("./config");
     const lessons = getLessons().slice(0, 5);
@@ -109,19 +112,10 @@ Otherwise, approve the findings for final synthesis.`;
 // 4. Synthesizer Node
 // ==========================================
 export async function synthesizeNode(state: typeof AgentState.State) {
-    const finalReport = await executeArchitectExpert("LEAD_ARCHITECT_EXPERT", state, "LEAD");
-    return { analysisResult: finalReport };
-}
+    const structuredReport = await executeArchitectExpert("LEAD_ARCHITECT_EXPERT", state, "LEAD");
 
-// ==========================================
-// 5. HITL Distillation Node
-// ==========================================
-export async function humanFeedbackNode(state: typeof AgentState.State) {
-    console.log(`\n=========================================`);
-    console.log(`[HITL] PROPOSED ARCHITECTURAL FINDINGS:`);
-    console.log(`=========================================\n`);
-    console.log(state.analysisResult);
-    console.log(`\n=========================================`);
-    console.log(`[HITL] Findings automatically approved for Knowledge Moat distillation.`);
-    return {};
+    return {
+        analysisResult: JSON.stringify(structuredReport, null, 2),
+        structuredAnalysisResult: structuredReport
+    };
 }

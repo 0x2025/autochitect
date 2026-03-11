@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "MS Sans Serif", Arial, sans-serif;
+  --font-windows: "MS Sans Serif", "Inter", sans-serif;
+
+  --color-win-gray: #c0c0c0;
+  --color-win-dark-gray: #808080;
+  --color-win-blue: #000080;
+  --color-win-white: #ffffff;
+  --color-win-black: #000000;
+}
+
+:root {
+  --background: #c0c0c0;
+  --foreground: #000000;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  image-rendering: pixelated;
+}
+
+/* Windows 98 Border Utilities */
+.win98-outset {
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+}
+
+.win98-inset {
+  border: 2px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+/* Windows 98 Button Styles */
+.win98-btn {
+  background-color: var(--color-win-gray);
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  padding: 0.25rem 1rem;
+}
+
+.win98-btn:active {
+  border-color: #808080 #ffffff #ffffff #808080;
+  padding-top: 0.375rem;
+  padding-left: 0.375rem;
+  padding-bottom: 0.125rem;
+  padding-right: 0.125rem;
+}
+
+/* Windows 98 Window Wrapper */
+.win98-window {
+  background-color: var(--color-win-gray);
+  padding: 0.125rem;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.win98-title-bar {
+  background-color: var(--color-win-blue);
+  color: var(--color-win-white);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.125rem 0.25rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.win98-title-bar-btn {
+  background-color: var(--color-win-gray);
+  color: var(--color-win-black);
+  width: 1rem;
+  height: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  border: 1px solid white;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  cursor: default;
+  padding: 0;
+  box-shadow: none;
+}

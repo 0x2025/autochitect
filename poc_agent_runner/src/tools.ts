@@ -1,5 +1,4 @@
 import { tool } from "@langchain/core/tools";
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { z } from "zod";
 import simpleGit from "simple-git";
 import * as fs from "fs";

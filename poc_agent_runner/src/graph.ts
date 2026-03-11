@@ -1,12 +1,12 @@
 import { StateGraph, START, END, MemorySaver, Send } from "@langchain/langgraph";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { AgentState, getRegistry, getModelForTask } from "./config";
+import { createLLM } from "./models";
 import {
     discoveryNode,
     expertAgentNode,
     criticAgentNode,
-    synthesizeNode,
-    humanFeedbackNode
+    synthesizeNode
 } from "./nodes";
 import { z } from "zod";
 import * as path from "path";
@@ -18,10 +18,11 @@ import simpleGit from "simple-git";
 // ==========================================
 async function routeToExperts(state: typeof AgentState.State) {
     const registry = getRegistry();
-    const llm = new ChatGoogleGenerativeAI({
-        modelName: getModelForTask("LOW"),
+    const llm = createLLM("LOW", {
+        provider: state.provider as any,
+        model: state.model || getModelForTask("LOW"),
         temperature: 0.1
-    });
+    }) as ChatGoogleGenerativeAI;
 
     console.log(`[Router] Performing Semantic Dispatch based on Discovery Report...`);
 
@@ -101,25 +102,34 @@ Return only the list of 'expert_id's.`;
 // ==========================================
 export function createGraph(isTest = false) {
     const cloneNode = async (state: typeof AgentState.State) => {
-        const repoUrl = state.repoUrl;
-        if (!repoUrl) {
+        const target = state.repoUrl;
+
+        if (!target) {
             return { localPath: state.localPath || path.join(process.cwd(), ".test-workspace") };
         }
 
-        const repoName = repoUrl.split("/").pop()?.replace(".git", "") || "unknown-repo";
+        // 1. Heuristic: Check if target is a local directory
+        if (fs.existsSync(target) && fs.lstatSync(target).isDirectory()) {
+            const absolutePath = path.resolve(target);
+            console.log(`[Node: Init] Using local directory: ${absolutePath}`);
+            return { localPath: absolutePath };
+        }
+
+        // 2. Remote Git logic
+        const repoName = target.split("/").pop()?.replace(".git", "") || "unknown-repo";
         const localBasePath = "/tmp/autochitect";
         const localPath = path.join(localBasePath, repoName);
 
         if (!fs.existsSync(localBasePath)) fs.mkdirSync(localBasePath, { recursive: true });
 
         if (!fs.existsSync(localPath)) {
-            console.log(`[Node: Clone] Cloning ${repoUrl} to ${localPath}...`);
-            await simpleGit().clone(repoUrl, localPath);
+            console.log(`[Node: Clone] Cloning ${target} to ${localPath}...`);
+            await simpleGit().clone(target, localPath);
         } else {
             console.log(`[Node: Clone] Repo already exists at ${localPath}. Skipping clone.`);
         }
 
-        return { localPath };
+        return { localPath: path.resolve(localPath) };
     };
 
     const workflow = new StateGraph(AgentState)
@@ -127,16 +137,14 @@ export function createGraph(isTest = false) {
         .addNode("discover", discoveryNode)
         .addNode("expertAgent", expertAgentNode)
         .addNode("auditor", criticAgentNode)
-        .addNode("synthesize", synthesizeNode)
-        .addNode("distill", humanFeedbackNode);
+        .addNode("synthesize", synthesizeNode);
 
     workflow.addEdge(START, "cloneRepo");
     workflow.addEdge("cloneRepo", "discover");
     workflow.addConditionalEdges("discover", routeToExperts);
     workflow.addEdge("expertAgent", "auditor");
     workflow.addEdge("auditor", "synthesize");
-    workflow.addEdge("synthesize", "distill");
-    workflow.addEdge("distill", END);
+    workflow.addEdge("synthesize", END);
 
     return workflow.compile({ checkpointer: new MemorySaver() });
 }
