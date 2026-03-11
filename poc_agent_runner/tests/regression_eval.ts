@@ -2,8 +2,11 @@ import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
 import { createGraph } from '../src/graph';
+import { setMaxListeners } from 'events';
 
 dotenv.config();
+// Prevent MaxListenersExceededWarning during concurrent expert execution
+setMaxListeners(50);
 
 async function runEval() {
     console.log("=========================================");

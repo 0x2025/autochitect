@@ -12,16 +12,22 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml* ./
+
+# Enable corepack and install pnpm 10
+RUN corepack enable && corepack prepare pnpm@10 --activate
 
 # Install ALL dependencies including devDependencies for build
-RUN npm install
+RUN pnpm install
 
 # Copy source code
 COPY . .
 
 # Build TypeScript to JS
-RUN npm run build
+RUN pnpm run build
+
+# Prune development dependencies to keep the image lean
+RUN pnpm prune --prod
 
 # Stage 2: Runtime stage
 FROM node:20-slim
@@ -32,7 +38,7 @@ RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 # Copy only production dependencies and built assets
-COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/registry.json ./

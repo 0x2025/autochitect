@@ -2,8 +2,11 @@ import * as dotenv from "dotenv";
 import * as path from "path";
 import * as fs from "fs";
 import { createGraph } from "./graph";
+import { setMaxListeners } from "events";
 
 dotenv.config();
+// Prevent MaxListenersExceededWarning during complex agent loops
+setMaxListeners(50);
 
 async function main() {
     const repo = process.env.TARGET_REPO_URL;
