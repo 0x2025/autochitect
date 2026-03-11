@@ -1,99 +1,88 @@
 {
   "health": "POOR",
-  "summary": "The application exhibits several critical security vulnerabilities, primarily related to prompt injection and command injection. Additionally, there are concerns regarding performance, scalability, and concurrency due to the use of `execSync` and file system operations. The reliance on LLMs for security decisions and the potential exposure of sensitive information through the discovery agent further contribute to the poor architectural health.",
+  "summary": "The architecture demonstrates good modularity and decoupling but suffers from critical security vulnerabilities, including a hardcoded API key and a command injection vulnerability. Performance bottlenecks and scalability limitations also exist. Immediate action is required to address these issues.",
   "diagrams": {
-    "c1": "C4Context(System, 'Autonomous Synthesizer', 'Analyzes codebases for vulnerabilities and NFR violations')\n\nRel(System, Developer, 'Uses', 'Develops and maintains the system')\nRel(System, LLMs, 'Uses', 'Leverages LLMs for code analysis and decision-making')\nRel(System, GitRepositories, 'Analyzes', 'Analyzes code from Git repositories')",
-    "c2": "C4Container(NodeJSApp, 'NodeJS Application', 'NodeJS', 'Core application logic')\nC4ContainerDb(Registry, 'Registry', 'JSON', 'Stores expert blueprints')\nC4ContainerDb(LessonsLearned, 'Lessons Learned', 'JSON', 'Stores institutional memory')\n\nRel(NodeJSApp, Registry, 'Reads from')\nRel(NodeJSApp, LessonsLearned, 'Reads from and writes to')",
-    "c3": "C4Container(config_container, \"Config Container\", \"NodeJS Module\", \"Manages application configuration and state.\")\n\nC4Component(config_agent_state, \"AgentState\", \"TypeScript\", \"Manages application-level state using Langchain Annotations.\", config_container)\nC4Component(config_expert_blueprint, \"ExpertBlueprint\", \"TypeScript Interface\", \"Defines the structure for expert configurations.\", config_container)\nC4Component(config_lesson, \"Lesson\", \"TypeScript Interface\", \"Defines the structure for lessons learned.\", config_container)\nC4Component(config_get_registry, \"getRegistry()\", \"TypeScript Function\", \"Reads expert blueprints from registry.json.\", config_container)\nC4Component(config_get_lessons, \"getLessons()\", \"TypeScript Function\", \"Reads lessons learned from lessons_learned.json.\", config_container)\nC4Component(config_save_lesson, \"saveLesson()\", \"TypeScript Function\", \"Saves a new lesson to lessons_learned.json.\", config_container)\nC4Component(config_get_model_for_task, \"getModelForTask()\", \"TypeScript Function\", \"Returns a model name based on task complexity.\", config_container)"
+    "c1": "```mermaid\nC4Context\n  title System Context Diagram for Autochitect\n\n  Person(developer, \"Developer\", \"Analyzes codebases and generates architectural reports\")\n\n  System_Ext(git, \"Git Repositories\", \"Source code repositories accessed via simpleGit\")\n  System_Ext(llm, \"LLM Providers\", \"Google Gemini, Anthropic, OpenAI, Ollama\")\n  System_Ext(github, \"GitHub\", \"Accesses private repositories\")\n\n  System(autochitect, \"Autochitect\", \"Analyzes codebases and generates architectural reports\")\n\n  Rel(developer, autochitect, \"Uses\", \"Command-line interface\")\n  Rel(autochitect, git, \"Clones\", \"simpleGit\")\n  Rel(autochitect, llm, \"Uses\", \"LLM calls for analysis\")\n  Rel(autochitect, github, \"Accesses\", \"For private repositories\")\n\nUpdateElementStyle(llm, $fontColor=\"#ffffff\", $bgColor=\"#808080\")\nUpdateElementStyle(github, $fontColor=\"#ffffff\", $bgColor=\"#808080\")\nUpdateElementStyle(git, $fontColor=\"#ffffff\", $bgColor=\"#808080\")\n```",
+    "c2": "```mermaid\nC4Container\n  title Container Diagram for Autochitect\n\n  Container(nodejs, \"Node.js Application\", \"\", \"Analyzes codebases and generates architectural reports\") {\n    Component(cli, \"CLI\", \"src/cli.ts\", \"Command-line interface using commander\")\n    Component(core, \"Core Logic\", \"src/index.ts, src/models.ts, src/graph.ts, src/nodes.ts\", \"Main application logic\") {\n      Component(discovery, \"discoveryNode\", \"src/nodes.ts\", \"Performs initial architectural discovery\")\n      Component(expert, \"expertAgentNode\", \"src/nodes.ts\", \"Executes specialized expert agents\")\n      Component(critic, \"criticAgentNode\", \"src/nodes.ts\", \"Audits expert reports against architectural goals and lessons learned\")\n      Component(synthesize, \"synthesizeNode\", \"src/nodes.ts\", \"Synthesizes the final analysis report\")\n    }\n    Component(experts, \"Experts\", \"src/experts/base.ts\", \"Base class for expert modules\")\n    Component(tools, \"Tools\", \"src/tools.ts\", \"File system tools for discovery\")\n  }\n\n  ContainerDb(registry, \"registry.json\", \"JSON\", \"Defines the expert registry\")\n  ContainerDb(lessons, \"lessons_learned.json\", \"JSON\", \"Contains learning data used by the criticAgentNode\")\n\n  Rel(nodejs, registry, \"Reads\", \"Configuration\")\n  Rel(nodejs, lessons, \"Reads\", \"Lessons Learned\")\n\nUpdateElementStyle(registry, $fontColor=\"#ffffff\", $bgColor=\"#808080\")\nUpdateElementStyle(lessons, $fontColor=\"#ffffff\", $bgColor=\"#808080\")\n```",
+    "c3": "```mermaid\nC4Component\n@startuml\n  component CriticAgentNode {\n    [TypeScript]\n    Component: criticAgentNode\n    Description: Audits expert reports against lessons learned.\n  }\n\n  database \"lessons_learned.json\" {\n    Description: Architectural policies and anti-patterns.\n  }\n\n  component \"LLM (Google Gemini)\" {\n    Description: Language model for report analysis.\n  }\n\n  CriticAgentNode -- lessons_learned.json : Reads lessons\n  CriticAgentNode -- LLM : Sends audit prompt, Receives verdict\n\n@enduml\n```"
   },
   "findings": [
     {
       "id": "finding_1",
       "criticality": "CRITICAL",
-      "title": "Prompt Injection Vulnerability in `routeToExperts`",
-      "description": "The `routeToExperts` function in `src/graph.ts` is vulnerable to prompt injection. The discovery report is directly included in the prompt, which could allow malicious code to be executed by the LLM.",
-      "impact": "An attacker could inject malicious instructions into the prompt to influence the LLM's behavior, potentially leading to arbitrary code execution or data exfiltration.",
+      "title": "Hardcoded Google API Key in .env",
+      "description": "A Google API key is stored in plain text within the `.env` file. This exposes the key to potential unauthorized access if the file is committed to version control or accessed by malicious actors.",
+      "impact": "Unauthorized use of the Google API, potential financial costs, and exposure of sensitive application data.",
       "files": [
-        "src/graph.ts"
+        ".env"
       ],
-      "recommendation": "Sanitize the discovery report before including it in the prompt to prevent LLM injection attacks. Implement input and output validation to ensure that the LLM's responses are safe and do not contain malicious content."
+      "recommendation": "Remove the hardcoded `GOOGLE_API_KEY` from the `.env` file and store it in a secure secret management system like a vault or environment variables configured at the system level. Rotate the compromised key immediately."
     },
     {
       "id": "finding_2",
-      "criticality": "HIGH",
-      "title": "Command Injection Vulnerability in `validateEvidence`",
-      "description": "The `validateEvidence` function in `src/experts/base.ts` uses `execSync` with a `find` command to check if a file exists. This could be exploited if the `filePath` parameter is not properly sanitized.",
-      "impact": "An attacker could inject malicious commands into the `filePath` parameter, leading to arbitrary code execution on the server.",
+      "criticality": "CRITICAL",
+      "title": "Command Injection Vulnerability in cloneNode",
+      "description": "The `cloneNode` function in `src/graph.ts` lacks validation of the `repoUrl`, making the application vulnerable to command injection attacks. An attacker could inject malicious commands into the `repoUrl` that would be executed on the server.",
+      "impact": "Complete compromise of the server, including the ability to execute arbitrary code, access sensitive data, and disrupt service.",
       "files": [
-        "src/experts/base.ts"
+        "src/graph.ts"
       ],
-      "recommendation": "Implement proper input sanitization and validation for the `filePath` parameter in `validateEvidence`. Consider using a safer alternative to `execSync`, such as a dedicated Git library or secure file system access methods."
+      "recommendation": "Implement robust input validation for the `repoUrl` in `src/graph.ts`. Use parameterized commands or libraries that automatically escape special characters to prevent command injection. Avoid using shell commands directly with user-provided input."
     },
     {
       "id": "finding_3",
-      "criticality": "MEDIUM",
-      "title": "Arbitrary Code Execution Risk in `validateEvidence`",
-      "description": "The `validateEvidence` function dynamically requires `child_process`. While this is not directly controllable by the user, it increases the attack surface and could be exploited in combination with other vulnerabilities.",
-      "impact": "If an attacker can control the execution flow, they might be able to leverage the dynamically required `child_process` to execute arbitrary code.",
+      "criticality": "CRITICAL",
+      "title": "Unvalidated LLM Input",
+      "description": "The LLM prompts in `discoveryNode` and `routeToExperts` include content derived from the codebase being analyzed. This could lead to prompt injection attacks, where malicious code in the analyzed repository could manipulate the LLM's behavior.",
+      "impact": "Compromised LLM, leading to incorrect analysis results, exposure of sensitive data, or execution of malicious code.",
       "files": [
-        "src/experts/base.ts"
+        "src/nodes.ts"
       ],
-      "recommendation": "Avoid dynamically requiring modules, especially those related to system commands. If `child_process` is necessary, ensure it's used with extreme caution and proper input validation."
+      "recommendation": "Sanitize the content that is injected into LLM prompts to prevent prompt injection attacks. Consider using techniques like input filtering, output validation, and prompt engineering to mitigate the risks."
     },
     {
       "id": "finding_4",
-      "criticality": "MEDIUM",
-      "title": "File System Access Vulnerability in `validateEvidence`",
-      "description": "The `validateEvidence` function uses `fs.existsSync` and `path.join` to check if a file exists. This could be exploited if the `filePath` parameter is not properly sanitized, leading to path traversal attacks.",
-      "impact": "An attacker could use path traversal techniques to access sensitive files or directories outside the intended scope.",
+      "criticality": "HIGH",
+      "title": "Reliance on LLMs for Security Audits",
+      "description": "The `criticAgentNode` relies on an LLM to audit the expert reports, which is an unreliable approach. LLMs are not perfect and can miss critical vulnerabilities.",
+      "impact": "Missed security vulnerabilities, leading to potential exploitation and compromise of the system.",
       "files": [
-        "src/experts/base.ts"
+        "src/nodes.ts"
       ],
-      "recommendation": "Implement proper input sanitization and validation for the `filePath` parameter. Use a library specifically designed for secure path manipulation to prevent path traversal attacks."
+      "recommendation": "Supplement the LLM-based security audit with traditional static analysis tools and manual code reviews. Do not rely solely on the LLM for identifying security vulnerabilities. Expand the scope of the \"INSTITUTIONAL MEMORY (MOAT)\" in `criticAgentNode` to include a more comprehensive set of security lessons."
     },
     {
       "id": "finding_5",
       "criticality": "MEDIUM",
-      "title": "Potential Exposure of Sensitive Information in `discoveryNode`",
-      "description": "The `discoveryNode` function in `src/nodes.ts` instructs the agent to look for specific files like `appsettings.json`. If the agent finds these files, it could potentially expose sensitive information.",
-      "impact": "Sensitive information, such as API keys or database credentials, could be exposed if the agent finds and reports the contents of configuration files.",
+      "title": "Performance Bottlenecks due to LLM Calls and Cloning",
+      "description": "The LLM calls in various nodes and the repository cloning process can be performance bottlenecks, especially for large codebases.",
+      "impact": "Slow analysis times, reduced throughput, and poor user experience.",
       "files": [
-        "src/nodes.ts"
+        "src/nodes.ts",
+        "src/graph.ts"
       ],
-      "recommendation": "Implement safeguards to prevent the agent from accessing or reporting sensitive information. Sanitize the agent's output and restrict its access to sensitive files."
+      "recommendation": "Optimize the LLM calls by caching the results or using more efficient LLM models. Consider using asynchronous file operations to improve performance. Explore techniques for parallelizing the cloning process."
     },
     {
       "id": "finding_6",
-      "criticality": "LOW",
-      "title": "Performance and Scalability Issues due to `execSync`",
-      "description": "The `validateEvidence` function in `src/experts/base.ts` uses `child_process.execSync`, which can be blocking and impact performance and concurrency.",
-      "impact": "The blocking `execSync` call can limit concurrency and reduce the application's responsiveness, especially under heavy load.",
+      "criticality": "MEDIUM",
+      "title": "Limited Scalability",
+      "description": "The application's scalability is limited by the LLM calls and the cloning process. As the number of analysis requests increases, the system may become overloaded.",
+      "impact": "Inability to handle a large number of concurrent requests, leading to service degradation or failure.",
       "files": [
-        "src/experts/base.ts"
+        "src/nodes.ts",
+        "src/graph.ts"
       ],
-      "recommendation": "Replace `child_process.execSync` with a non-blocking alternative, such as `child_process.exec`, to improve performance and concurrency."
+      "recommendation": "Explore techniques for scaling the application, such as using a distributed task queue or a serverless architecture. Consider using a more scalable cloning solution."
     },
     {
       "id": "finding_7",
-      "criticality": "LOW",
-      "title": "Scalability Issues due to File System Operations",
-      "description": "The file system operations in `src/config.ts` (reading and writing to `registry.json` and `lessons_learned.json`) might become a bottleneck if the files become too large.",
-      "impact": "As the registry and lessons files grow, the file system operations can become a performance bottleneck, impacting the application's scalability.",
-      "files": [
-        "src/config.ts"
-      ],
-      "recommendation": "Implement caching for the registry and lessons files to reduce the number of file system operations. Consider using a database or other persistent storage for the registry and lessons data to improve scalability."
-    },
-    {
-      "id": "finding_8",
-      "criticality": "LOW",
-      "title": "Violation of Open/Closed Principle in `getModelForTask`",
-      "description": "The `getModelForTask` function in `src/config.ts` hardcodes the model to \"gemini-2.0-flash\", which violates the Open/Closed Principle.",
-      "impact": "The hardcoded model makes it difficult to change or extend the application's functionality without modifying the code.",
-      "files": [
-        "src/config.ts"
-      ],
-      "recommendation": "Make the model configurable in `getModelForTask` to adhere to the Open/Closed Principle. Use environment variables or a configuration file to specify the model to use."
+      "criticality": "MEDIUM",
+      "title": "AST Analysis Failures",
+      "description": "The `get_component_details_ast` function consistently fails, limiting the ability to perform deep structural analysis of the code.",
+      "impact": "Incomplete analysis results, potentially missing critical vulnerabilities or architectural flaws.",
+      "files": [],
+      "recommendation": "Investigate and resolve the failures in the `get_component_details_ast` function to enable deeper code analysis."
     }
   ]
 }
