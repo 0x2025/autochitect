@@ -19,8 +19,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache-dependency-path: poc_agent_runner/package-lock.json
-          cache: 'npm'
       - name: Install dependencies
         run: npm install
       - name: Validate Expert Registry
@@ -35,8 +33,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache-dependency-path: poc_agent_runner/package-lock.json
-          cache: 'npm'
       - name: Install dependencies
         run: npm install
       - name: Run Regression Evaluation
