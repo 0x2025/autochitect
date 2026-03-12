@@ -3,6 +3,7 @@ import { createLLM } from "../models";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import * as path from "path";
 import * as fs from "fs";
+import { BaseMessage } from "@langchain/core/messages";
 import { AgentState, getRegistry, getLessons, getModelForTask, Lesson } from "../config";
 import { createFileSystemTools } from "../tools";
 import { z } from "zod";
@@ -125,7 +126,8 @@ Audit for: Modular Integrity, Decoupling, SOLID, and NFR execution.`;
         messages: [systemInstruction, new HumanMessage(basePrompt)]
     });
 
-    const output = runResult.messages[runResult.messages.length - 1].content as string;
+    const message = runResult.messages[runResult.messages.length - 1];
+    const output = extractMessageContent(message);
 
     // Expert Grounding
     const extensions = blueprint.grounding?.extensions || [];
@@ -136,6 +138,32 @@ Audit for: Modular Integrity, Decoupling, SOLID, and NFR execution.`;
     }
 
     return output;
+}
+
+/**
+ * Robustly extract string content from a LangChain message.
+ * Handles string content, array of content blocks, and other edge cases.
+ */
+export function extractMessageContent(message: any): string {
+    if (!message) return "";
+
+    const content = typeof message === 'string' ? message : (message as BaseMessage).content;
+
+    if (typeof content === 'string') {
+        return content;
+    }
+
+    if (Array.isArray(content)) {
+        return content
+            .map((block: any) => {
+                if (typeof block === 'string') return block;
+                if (block?.type === 'text' && typeof block.text === 'string') return block.text;
+                return "";
+            })
+            .join("");
+    }
+
+    return String(content || "");
 }
 
 async function retrieveRelevantLessons(discoveryResult: string, state: typeof AgentState.State): Promise<Lesson[]> {
@@ -188,7 +216,11 @@ Rules:
     }
 }
 
-function validateEvidence(report: string, localPath: string, extensions: string[]): { isValid: boolean; error?: string } {
+function validateEvidence(report: any, localPath: string, extensions: string[]): { isValid: boolean; error?: string } {
+    if (typeof report !== 'string') {
+        console.warn("[Grounding] Report is not a string, skipping regex matching.");
+        return { isValid: true };
+    }
     const fileRegex = /([a-zA-Z0-9._\-\/]+\.[a-zA-Z0-9]+)/g;
     const matches = report.match(fileRegex) || [];
 

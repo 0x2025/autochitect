@@ -5,7 +5,7 @@ import { z } from "zod";
 import { AgentState, getModelForTask, getLessons } from "./config";
 import { createLLM } from "./models";
 import { createFileSystemTools } from "./tools";
-import { executeArchitectExpert } from "./experts/base";
+import { executeArchitectExpert, extractMessageContent } from "./experts/base";
 
 // ==========================================
 // 1. Discovery Agent Node
@@ -36,7 +36,7 @@ Return a report structured by C4 Levels (Context and Containers). List specific 
         messages: [new HumanMessage(prompt)]
     });
 
-    const finalAnswer = result.messages[result.messages.length - 1].content as string;
+    const finalAnswer = extractMessageContent(result.messages[result.messages.length - 1]);
     console.log(`\n[Node: Discovery] Autonomous Discovery Complete.`);
 
     const langExtractionSchema = z.object({
@@ -58,7 +58,8 @@ Return a report structured by C4 Levels (Context and Containers). List specific 
 export async function expertAgentNode(state: typeof AgentState.State) {
     const expertId = state.activeExpertId || "GENERAL_EXPERT";
     const report = await executeArchitectExpert(expertId, state, "SPECIALIST");
-    return { expertReports: [report] };
+    const reportText = typeof report === 'string' ? report : JSON.stringify(report, null, 2);
+    return { expertReports: [reportText] };
 }
 
 // ==========================================
@@ -101,7 +102,7 @@ Otherwise, approve the findings for final synthesis.`;
     const result = await llm.stream([new HumanMessage(prompt)]);
     let criticReport = "";
     for await (const chunk of result) {
-        criticReport += chunk.content;
+        criticReport += extractMessageContent(chunk);
     }
 
     return { expertReports: [...state.expertReports, `\n[AUDITOR VERDICT]:\n${criticReport}`] };
