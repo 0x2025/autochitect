@@ -1,6 +1,7 @@
 import * as dotenv from "dotenv";
 import * as path from "path";
 import * as fs from "fs";
+import { Storage } from '@google-cloud/storage';
 import { createGraph } from "./graph";
 import { setMaxListeners } from "events";
 
@@ -79,6 +80,22 @@ export async function runAgent(options: {
 
         if (!saved) {
             console.error("FATAL: Could not save structured report to ANY configured directory.");
+        } else if (process.env.GCS_BUCKET_NAME) {
+            try {
+                const storage = new Storage();
+                const bucket = storage.bucket(process.env.GCS_BUCKET_NAME);
+                const repoId = options.repoUrl.replace(/https?:\/\//, '').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+                const outPath = options.outputPath || path.join(process.cwd(), "report.json");
+                
+                console.log(`[GCS] Uploading report to gs://${process.env.GCS_BUCKET_NAME}/${repoId}.json...`);
+                await bucket.upload(outPath, {
+                    destination: `${repoId}.json`,
+                    contentType: 'application/json',
+                });
+                console.log(`[GCS] SUCCESS: Report uploaded.`);
+            } catch (err: any) {
+                console.error(`[GCS] Upload Failed: ${err.message}`);
+            }
         }
     }
 
