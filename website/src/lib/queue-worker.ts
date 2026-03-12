@@ -231,7 +231,7 @@ class QueueWorker {
     }
 
     private async runCli(task: ScanTask): Promise<void> {
-        if (process.env.NODE_ENV === 'production' && this.jobsClient) {
+        if (process.env.NODE_ENV === 'production' && this.jobsClient && process.env.FORCE_LOCAL !== 'true') {
             return this.runCloudRunJob(task);
         } else {
             return this.runLocalCli(task);

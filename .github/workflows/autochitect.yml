@@ -116,7 +116,7 @@ jobs:
             --cpu=1 \
             --timeout=300s \
             --set-secrets=GOOGLE_API_KEY=GOOGLE_API_KEY:latest \
-            --set-env-vars=NODE_ENV=production,GCS_BUCKET_NAME=${{ env.PROJECT_ID }}-autochitect-storage,PROJECT_ID=${{ env.PROJECT_ID }},REGION=${{ env.REGION }}
+            --set-env-vars=NODE_ENV=production,GCS_BUCKET_NAME=autochitect,PROJECT_ID=${{ env.PROJECT_ID }},REGION=${{ env.REGION }}
 
       - name: Deploy Cloud Run Job
         run: |
@@ -126,7 +126,7 @@ jobs:
             --args="/app/cli/dist/cli.js" \
             --region=${{ env.REGION }} \
             --set-secrets=GOOGLE_API_KEY=GOOGLE_API_KEY:latest \
-            --set-env-vars=GCS_BUCKET_NAME=${{ env.PROJECT_ID }}-autochitect-storage \
+            --set-env-vars=GCS_BUCKET_NAME=autochitect \
             --memory=2Gi \
             --cpu=1 \
             --max-retries=3 \

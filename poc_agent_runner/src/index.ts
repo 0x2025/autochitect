@@ -60,7 +60,7 @@ export async function runAgent(options: {
 
     if (result.structuredAnalysisResult) {
         const outDirs = options.outputPath ? [path.dirname(options.outputPath), "/app/output", process.cwd()] : ["/app/output", process.cwd()];
-        let saved = false;
+        let savedPath: string | null = null;
 
         for (const dir of outDirs) {
             if (fs.existsSync(dir) || (dir === path.dirname(options.outputPath || ""))) {
@@ -70,7 +70,7 @@ export async function runAgent(options: {
                     console.log(`Attempting to save report to: ${outPath}...`);
                     fs.writeFileSync(outPath, JSON.stringify(result.structuredAnalysisResult, null, 2));
                     console.log(`SUCCESS: Structured report saved to ${outPath}`);
-                    saved = true;
+                    savedPath = outPath;
                     break;
                 } catch (err: any) {
                     console.warn(`[Warning] Failed to save to ${outPath}: ${err.message}`);
@@ -78,17 +78,16 @@ export async function runAgent(options: {
             }
         }
 
-        if (!saved) {
+        if (!savedPath) {
             console.error("FATAL: Could not save structured report to ANY configured directory.");
         } else if (process.env.GCS_BUCKET_NAME) {
             try {
                 const storage = new Storage();
                 const bucket = storage.bucket(process.env.GCS_BUCKET_NAME);
                 const repoId = options.repoUrl.replace(/https?:\/\//, '').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
-                const outPath = options.outputPath || path.join(process.cwd(), "report.json");
                 
-                console.log(`[GCS] Uploading report to gs://${process.env.GCS_BUCKET_NAME}/${repoId}.json...`);
-                await bucket.upload(outPath, {
+                console.log(`[GCS] Uploading report from ${savedPath} to gs://${process.env.GCS_BUCKET_NAME}/${repoId}.json...`);
+                await bucket.upload(savedPath, {
                     destination: `${repoId}.json`,
                     contentType: 'application/json',
                 });
