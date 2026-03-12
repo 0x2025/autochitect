@@ -60,8 +60,7 @@ jobs:
   check-changes:
     runs-on: ubuntu-latest
     outputs:
-      web: ${{ steps.filter.outputs.web }}
-      agent: ${{ steps.filter.outputs.agent }}
+      should-deploy: ${{ steps.filter.outputs.should-deploy }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -70,20 +69,19 @@ jobs:
         id: filter
         with:
           filters: |
-            web:
+            should-deploy:
               - 'website/**'
-            agent:
               - 'poc_agent_runner/**'
+              - 'Dockerfile'
+              - '.github/workflows/autochitect.yml'
 
-  deploy-web:
+  deploy:
     needs: [regression, check-changes]
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
-    outputs:
-      web-url: ${{ steps.web-url.outputs.url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -95,20 +93,20 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
-      - name: Build Web Docker image
+      - name: Build Docker image
         run: |
           docker build \
-            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/autochitect-web:${{ github.sha }} \
-            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/autochitect-web:latest \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/autochitect:${{ github.sha }} \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/autochitect:latest \
             -f Dockerfile .
-      - name: Push Web image to Artifact Registry
+      - name: Push image to Artifact Registry
         run: |
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/autochitect-web:${{ github.sha }}
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/autochitect-web:latest
-      - name: Deploy Web to Cloud Run
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/autochitect:${{ github.sha }}
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/autochitect:latest
+      - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy autochitect-web \
-            --image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/autochitect-web:${{ github.sha }} \
+          gcloud run deploy autochitect \
+            --image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/autochitect:${{ github.sha }} \
             --region=${{ env.REGION }} \
             --platform=managed \
             --allow-unauthenticated \
@@ -116,79 +114,27 @@ jobs:
             --max-instances=10 \
             --memory=1Gi \
             --cpu=1 \
-            --timeout=60s \
-            --set-env-vars=NODE_ENV=production,Storage__UseGCS=true,GCP__BucketName=${{ env.PROJECT_ID }}-autochitect-storage
-      - name: Get Web URL
-        id: web-url
-        run: |
-          WEB_URL=$(gcloud run services describe autochitect-web --region=${{ env.REGION }} --format='value(status.url)')
-          echo "url=$WEB_URL" >> $GITHUB_OUTPUT
-          echo "✅ Web Deployed: $WEB_URL"
+            --timeout=300s \
+            --set-secrets=GOOGLE_API_KEY=GOOGLE_API_KEY:latest \
+            --set-env-vars=NODE_ENV=production,GCS_BUCKET_NAME=${{ env.PROJECT_ID }}-autochitect-storage
 
-  deploy-agent:
-    needs: [regression, check-changes]
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
-      - name: Build Agent Docker image
+      - name: Get Service URL
         run: |
-          docker build \
-            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/autochitect-agent:${{ github.sha }} \
-            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/autochitect-agent:latest \
-            -f poc_agent_runner/Dockerfile poc_agent_runner/
-      - name: Push Agent image to Artifact Registry
-        run: |
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/autochitect-agent:${{ github.sha }}
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/autochitect-agent:latest
-      - name: Get Web URL
-        id: get-web-url
-        run: |
-          WEB_URL=$(gcloud run services describe autochitect-web --region=${{ env.REGION }} --format='value(status.url)')
-          echo "url=$WEB_URL" >> $GITHUB_OUTPUT
-      - name: Deploy Agent to Cloud Run
-        run: |
-          gcloud run deploy autochitect-agent \
-            --image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/autochitect-agent:${{ github.sha }} \
-            --region=${{ env.REGION }} \
-            --platform=managed \
-            --allow-unauthenticated \
-            --min-instances=0 \
-            --max-instances=5 \
-            --memory=1Gi \
-            --cpu=1 \
-            --timeout=30s \
-            --set-secrets=GOOGLE_API_KEY=GOOGLE_API_KEY:latest,API_TOKEN=AGENT_API_KEY_S2S:latest \
-            --set-env-vars=AUTOCHITECT_API_URL=${{ steps.get-web-url.outputs.url }},DEFAULT_MODEL=gemini/gemini-2.0-flash
-      - name: Get Agent URL
-        run: |
-          AGENT_URL=$(gcloud run services describe autochitect-agent --region=${{ env.REGION }} --format='value(status.url)')
-          echo "✅ Agent Deployed: $AGENT_URL"
+          SERVICE_URL=$(gcloud run services describe autochitect --region=${{ env.REGION }} --format='value(status.url)')
+          echo "✅ Autochitect Deployed: $SERVICE_URL"
 
-  docker-release:
-    needs: regression
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Login to Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u sangcungoc --password-stdin
-      - name: Build and Push Docker Image
-        run: |
-          docker build -t sangcungoc/autochitect:latest .
-          docker push sangcungoc/autochitect:latest
+#  docker-release:
+#    needs: regression
+#    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: Login to Docker Hub
+#        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u sangcungoc --password-stdin
+#      - name: Build and Push Docker Image
+#        run: |
+#          docker build -t sangcungoc/autochitect:latest .
+#          docker push sangcungoc/autochitect:latest
 
   npm-release:
     needs: regression
