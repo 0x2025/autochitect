@@ -18,7 +18,8 @@ export async function runAgent(options: {
     discoveryResult?: string,
     discoveredLanguages?: string[],
     provider?: string,
-    model?: string
+    model?: string,
+    outputPath?: string
 }) {
     if (!options.repoUrl) {
         throw new Error("Target Repository URL is required. Hint: Pass it as the first argument or set TARGET_REPO_URL.");
@@ -57,12 +58,13 @@ export async function runAgent(options: {
     console.log("\n=========================================");
 
     if (result.structuredAnalysisResult) {
-        const outDirs = ["/app/output", process.cwd()];
+        const outDirs = options.outputPath ? [path.dirname(options.outputPath), "/app/output", process.cwd()] : ["/app/output", process.cwd()];
         let saved = false;
 
         for (const dir of outDirs) {
-            if (fs.existsSync(dir)) {
-                const outPath = path.join(dir, "report.json");
+            if (fs.existsSync(dir) || (dir === path.dirname(options.outputPath || ""))) {
+                if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+                const outPath = options.outputPath && dir === path.dirname(options.outputPath) ? options.outputPath : path.join(dir, "report.json");
                 try {
                     console.log(`Attempting to save report to: ${outPath}...`);
                     fs.writeFileSync(outPath, JSON.stringify(result.structuredAnalysisResult, null, 2));

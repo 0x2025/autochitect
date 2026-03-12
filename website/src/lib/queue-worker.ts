@@ -165,9 +165,8 @@ class QueueWorker {
             }
 
             const localReportPath = path.join(LOCAL_OUTPUT_DIR, `${task.repoId}.json`);
-            const defaultOutputFile = path.join(process.cwd(), 'report.json');
 
-            const child = spawn('node', [CLI_PATH, task.repoUrl], {
+            const child = spawn('node', [CLI_PATH, task.repoUrl, '--output', localReportPath], {
                 env: {
                     ...process.env,
                     TARGET_REPO_URL: task.repoUrl,
@@ -184,9 +183,6 @@ class QueueWorker {
             child.on('close', async (code) => {
                 if (code === 0) {
                     try {
-                        if (fs.existsSync(defaultOutputFile)) {
-                            fs.renameSync(defaultOutputFile, localReportPath);
-                        }
 
                         if (this.useGcs) {
                             const bucket = storage.bucket(BUCKET_NAME);

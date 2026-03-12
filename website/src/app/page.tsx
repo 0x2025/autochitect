@@ -201,7 +201,7 @@ function StatusBadge({ status, count, error }: { status: ScanTask["status"]; cou
     case "COMPLETED":
       return (
         <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
-          {count !== undefined ? `${count} Issues Found` : "Analysis Complete"}
+          {count !== undefined && count > 0 ? `${count} Issues Found` : count === 0 ? "No Issues Found" : "Analysis Complete"}
         </span>
       );
   }

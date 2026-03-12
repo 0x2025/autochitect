@@ -18,6 +18,7 @@ program
     .option("-e, --eval", "Run in local evaluation mode (uses .test-workspace)", false)
     .option("-p, --provider <provider>", "LLM Provider (google-genai, google-vertexai, anthropic, openai, ollama)")
     .option("-m, --model <model>", "Specific LLM model name")
+    .option("-o, --output <path>", "Custom path for the structured JSON report")
     .action(async (repoUrl, options) => {
         // Show help if no arguments provided
         if (!repoUrl && !process.env.TARGET_REPO_URL) {
@@ -34,7 +35,8 @@ program
                 isTest: options.eval,
                 token: options.token,
                 provider: options.provider,
-                model: options.model
+                model: options.model,
+                outputPath: options.output
             });
         } catch (err: any) {
             console.error("\n❌ Execution Error:", err.message);
