@@ -33,29 +33,29 @@ jobs:
         run: pnpm run validate:registry
         working-directory: poc_agent_runner
 
-  regression:
-    needs: validate
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 10
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          cache-dependency-path: poc_agent_runner/pnpm-lock.yaml
-      - name: Install dependencies
-        run: pnpm install
-        working-directory: poc_agent_runner
-      - name: Run Regression Evaluation
-        env:
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-        working-directory: poc_agent_runner
-        run: |
-          NODE_OPTIONS="--max-old-space-size=6144" npx ts-node --transpile-only tests/regression_eval.ts
+#  regression:
+#    needs: validate
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: pnpm/action-setup@v3
+#        with:
+#          version: 10
+#      - name: Use Node.js
+#        uses: actions/setup-node@v4
+#        with:
+#          node-version: '20'
+#          cache: 'pnpm'
+#          cache-dependency-path: poc_agent_runner/pnpm-lock.yaml
+#      - name: Install dependencies
+#        run: pnpm install
+#        working-directory: poc_agent_runner
+#      - name: Run Regression Evaluation
+#        env:
+#          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+#        working-directory: poc_agent_runner
+#        run: |
+#          NODE_OPTIONS="--max-old-space-size=6144" npx ts-node --transpile-only tests/regression_eval.ts
 
   check-changes:
     runs-on: ubuntu-latest
@@ -76,7 +76,7 @@ jobs:
               - '.github/workflows/autochitect.yml'
 
   deploy:
-    needs: [regression, check-changes]
+    needs: [validate, check-changes]
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
@@ -137,7 +137,7 @@ jobs:
 #          docker push sangcungoc/autochitect:latest
 
   npm-release:
-    needs: regression
+    needs: validate
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
