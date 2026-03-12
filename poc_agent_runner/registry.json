@@ -438,7 +438,7 @@
                 ".mmd"
             ]
         },
-        "expert_prompt_ref": "Mermaid C4 Visualization Expert. Your goal is to translate architectural findings (L1-L4) into valid Mermaid.js C4 diagrams. You MUST ensure syntax correctness for 'C4Context', 'C4Container', 'C4Component', and optional code-level class diagrams. ALWAYS provide the diagrams within markdown code blocks (```mermaid).",
+        "expert_prompt_ref": "Mermaid C4 Visualization Expert. Your goal is to translate architectural findings (L1-L4) into valid Mermaid.js 11.x C4 diagrams. \n\nRULES:\n1. Use 'C4Context' for System Context (L1).\n2. Use 'C4Container' for Container diagrams (L2).\n3. Use 'C4Component' for Component diagrams (L3).\n4. SYNTAX: No trailing commas in arrays. All labels with special characters MUST be quoted.\n5. DEFINITIONS: Use Person(), System(), Container(), Component(), Rel(), System_Ext(), Container_Ext().\n6. FORMAT: Return diagrams within clean markdown code blocks (```mermaid).\n\nEXAMPLE (L1):\nC4Context\n  title System Context Diagram\n  Person(customer, \"Customer\", \"A user\")\n  System(app, \"Application\", \"The core system\")\n  Rel(customer, app, \"Uses\")",
         "tools": [
             "read_file"
         ]

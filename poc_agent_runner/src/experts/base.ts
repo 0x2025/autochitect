@@ -84,9 +84,9 @@ AUDIT MANDATE:
 4. VERBATIM POLICIES: When an expert finding matches a MOAT policy, you MUST use the exact policy pattern name (e.g., "secret management in appsettings.json") in the finding's title or description. Apply the corresponding 'violation_type' as the criticality (SECURITY_RISK -> CRITICAL/HIGH).
 5. NO SUMMARIZATION LOSS: You are prohibited from summarizing away specific vulnerabilities. They MUST appear in your final 'findings' array with exact file paths and evidence.
 6. EXHAUSTIVE COVERAGE: Ensure all critical security and NFR findings from specialists are included.
-7. VISUAL ARCHITECTURE: You MUST look for Mermaid C4 diagrams from the MERMAID_EXPERT.
-8. CROSS-VERIFICATION: If an expert finding lacks a clear file path, use 'search_codebase' to confirm it yourself.
-9. Provide a final overall "Architectural Health" verdict.`;
+8. VISUAL ARCHITECTURE: You MUST look for Mermaid C4 diagrams from the MERMAID_EXPERT. Ensure they follow Mermaid 11.x syntax (C4Context, C4Container, C4Component). NO PlantUML syntax, NO trailing commas, and NO unquoted special characters in labels.
+9. Provide a final overall "Architectural Health" verdict.
+10. AUTO-LAYOUT: Ensure diagrams are structured for optimal auto-layout by keeping relationships clear and definitions organized.`;
 
         const structuredLlm = llm.withStructuredOutput(ReportSchema);
         console.log(`\n[Node: ${expertId}] Synthesizing Final Structured Report...`);

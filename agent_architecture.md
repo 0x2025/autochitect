@@ -77,7 +77,7 @@ The Registry is enriched through three primary channels, ensuring it stays ahead
     *   **Model Routing:** Cheap models (Gemini-Flash) are used for mapping; premium models (Claude 3.5 Sonnet) are used for this final high-precision architectural critique.
 6.  **Phase E: Evidence Grounding & The Reflection Loop:**
     *   **Evidence Grounding:** Every finding MUST pass a deterministic check: `file_exists(path)` and `code_exists(snippet)`. Hallucinated citations trigger an automatic re-prompt.
-    *   **Visual C4 Reporting:** The agent is required to synthesize findings into live **Mermaid.js C1-C4 diagrams**, embedded directly in the report for immediate structural visualization.
+    *   **Visual C4 Reporting:** The agent is required to synthesize findings into live **Mermaid.js 11.x C4 diagrams** (using `C4Context`, `C4Container`, etc.). Diagrams are optimized for **Auto-layout** (no trailing commas, quoted labels) and embedded directly in the report for immediate structural visualization.
     *   The validated report is submitted to the **Challenger** node for final cross-check against the **Lesson Store**.
 7.  **Artifact Generation:** Final reports are pushed to the SaaS database via webhook.
 

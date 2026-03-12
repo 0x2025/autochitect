@@ -39,12 +39,12 @@ const Mermaid: React.FC<MermaidProps> = ({ chart }) => {
     const renderMermaid = async (targetRef: React.RefObject<HTMLDivElement | null>, containerId: string) => {
         if (targetRef.current && chart) {
             const cleanChart = chart
-                .replace(/^```mermaid\s*/, "")
-                .replace(/```$/, "")
+                .replace(/```mermaid\s*/g, "")
+                .replace(/```/g, "")
                 .trim();
 
             const renderId = `${containerId}-${Math.random().toString(36).substr(2, 9)}`;
-            targetRef.current.innerHTML = `<div id="${renderId}" class="mermaid-container w-full h-full">${cleanChart}</div>`;
+            targetRef.current.innerHTML = `<div id="${renderId}" class="mermaid-container w-full h-full flex justify-center items-center">${cleanChart}</div>`;
 
             try {
                 await mermaid.run({
@@ -58,6 +58,11 @@ const Mermaid: React.FC<MermaidProps> = ({ chart }) => {
                     svg.style.height = 'auto';
                     svg.style.display = 'block';
                     svg.style.margin = '0 auto';
+                    
+                    // Force re-evaluation of auto-layout if it looks too small
+                    if (svg.viewBox.baseVal.width < 100) {
+                        svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+                    }
                 }
             } catch (err) {
                 console.error("Mermaid render error:", err);
