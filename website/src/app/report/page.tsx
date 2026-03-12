@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { Card, Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import Mermaid from "@/components/mermaid";
@@ -31,6 +31,18 @@ interface StructuredReport {
 }
 
 export default function ReportPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 py-20">
+                <p className="text-gray-500 text-sm font-bold tracking-widest uppercase animate-pulse">Loading Report...</p>
+            </div>
+        }>
+            <ReportContent />
+        </Suspense>
+    );
+}
+
+function ReportContent() {
     const [report, setReport] = useState<StructuredReport | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [validatedFindings, setValidatedFindings] = useState<Record<string, { valid: boolean, rationale: string }>>({});
