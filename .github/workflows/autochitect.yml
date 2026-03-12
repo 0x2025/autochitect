@@ -125,7 +125,7 @@ jobs:
             --command="node" \
             --args="/app/cli/dist/cli.js" \
             --region=${{ env.REGION }} \
-            --set-secrets=GOOGLE_API_KEY=GOOGLE_API_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest \
+            --set-secrets=GOOGLE_API_KEY=GOOGLE_API_KEY:latest \
             --set-env-vars=GCS_BUCKET_NAME=${{ env.PROJECT_ID }}-autochitect-storage \
             --memory=2Gi \
             --cpu=1 \
