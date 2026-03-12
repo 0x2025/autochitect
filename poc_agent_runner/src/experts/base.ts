@@ -26,7 +26,8 @@ const ReportSchema = z.object({
         impact: z.string().describe("Potential consequences for the system."),
         files: z.array(z.string()).describe("List of relative file paths associated with this finding."),
         recommendation: z.string().describe("Actionable advice to resolve the issue.")
-    })).describe("List of specific architectural and security findings.")
+    })).describe("List of specific architectural and security findings."),
+    discoveredLanguages: z.array(z.string()).optional().describe("Languages detected in the codebase.")
 });
 
 /**
@@ -78,17 +79,21 @@ ${lessonPrompt || "No specific historical anti-patterns found."}
 AUDIT MANDATE:
 1. FORMAT: Use the [C4 Model Hierarchy] (L1 System Context, L2 Containers, L3 Components, L4 Code & NFR).
 2. EXPERT FIDELITY: You MUST treat the Specialist Expert Reports as the primary source of truth. Do NOT omit any expert's findings unless your own tool-based verification definitively proves them false.
-3. NO SUMMARIZATION LOSS: You are prohibited from summarizing away specific vulnerabilities. They MUST appear in your final L4 Code section with exact file paths and evidence.
-4. EXHAUSTIVE COVERAGE: Ensure all critical security and NFR findings from specialists are included.
-5. VERBATIM POLICIES: When an expert finding matches an "ARCHITECTURAL POLICY (MOAT)", you MUST use the exact policy pattern name (e.g., "untrusted binary sources in Dockerfile") in your verdict.
-6. VISUAL ARCHITECTURE: You MUST look for Mermaid C4 diagrams from the MERMAID_EXPERT.
-7. CROSS-VERIFICATION: If an expert finding lacks a clear file path, use 'search_codebase' to confirm it yourself.
-8. Provide a final overall "Architectural Health" verdict.`;
+3. MOAT ENFORCEMENT: If any expert report or discovery context indicates a violation of an "ARCHITECTURAL POLICY (MOAT)", you MUST include it as a finding.
+4. VERBATIM POLICIES: When an expert finding matches a MOAT policy, you MUST use the exact policy pattern name (e.g., "secret management in appsettings.json") in the finding's title or description. Apply the corresponding 'violation_type' as the criticality (SECURITY_RISK -> CRITICAL/HIGH).
+5. NO SUMMARIZATION LOSS: You are prohibited from summarizing away specific vulnerabilities. They MUST appear in your final 'findings' array with exact file paths and evidence.
+6. EXHAUSTIVE COVERAGE: Ensure all critical security and NFR findings from specialists are included.
+7. VISUAL ARCHITECTURE: You MUST look for Mermaid C4 diagrams from the MERMAID_EXPERT.
+8. CROSS-VERIFICATION: If an expert finding lacks a clear file path, use 'search_codebase' to confirm it yourself.
+9. Provide a final overall "Architectural Health" verdict.`;
 
         const structuredLlm = llm.withStructuredOutput(ReportSchema);
         console.log(`\n[Node: ${expertId}] Synthesizing Final Structured Report...`);
 
-        return await structuredLlm.invoke(basePrompt);
+        return {
+            ...(await structuredLlm.invoke(basePrompt)),
+            discoveredLanguages: state.discoveredLanguages
+        };
     }
 
     const architectAgent = createReactAgent({ llm, tools });
@@ -106,9 +111,10 @@ ${lessonPrompt || "No specific historical anti-patterns found."}
 AUDIT MANDATE:
 1. [L3 - Components]: Use 'get_component_details_ast' to map the internal architectural blocks (Namespaces, Modules) of the assigned path.
 2. [L4 - Code & NFR]: Zoom into 2-3 critical files. Analyze the Relationship Triad (Methods, Attributes, Dependencies).
-3. NON-FUNCTIONAL FOCUS: Evaluate how the code handles Performance, Scalability, and Concurrency.
-4. PATH RESILIENCY: If a path is not found, use 'search_codebase' or 'get_repository_map' to locate it.
-5. Cite file paths and provide evidence-based verdicts.
+3. MOAT VERIFICATION: You MUST explicitly check for the "ARCHITECTURAL POLICIES (MOAT)" patterns listed above. If you find a match, report it with the exact pattern name and file evidence.
+4. NON-FUNCTIONAL FOCUS: Evaluate how the code handles Performance, Scalability, and Concurrency.
+5. PATH RESILIENCY: If a path is not found, use 'search_codebase' or 'get_repository_map' to locate it.
+6. Cite file paths and provide evidence-based verdicts.
 
 Audit for: Modular Integrity, Decoupling, SOLID, and NFR execution.`;
 
@@ -152,6 +158,7 @@ ${allLessons.map(l => `- ${l.pattern}: ${l.rationale}`).join("\n")}
 ========================================
 
 ====== codebase Discovery Report ======
+Languages Found: ${state.discoveredLanguages.join(", ")}
 ${discoveryResult}
 ========================================`;
 

@@ -4,8 +4,10 @@ import React, { useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
 
 mermaid.initialize({
-    startOnLoad: true,
+    startOnLoad: false,
     theme: 'base',
+    securityLevel: 'loose',
+    htmlLabels: true,
     themeVariables: {
         primaryColor: '#ffffff',
         primaryTextColor: '#000000',
@@ -13,8 +15,17 @@ mermaid.initialize({
         lineColor: '#000000',
         secondaryColor: '#f4f4f4',
         tertiaryColor: '#ffffff',
+    },
+    // Ensure diagrams scale to container
+    c4: {
+        useMaxWidth: true
+    },
+    flowchart: {
+        useMaxWidth: true
     }
 });
+
+import { Card, Button } from './ui';
 
 interface MermaidProps {
     chart: string;
@@ -22,22 +33,109 @@ interface MermaidProps {
 
 const Mermaid: React.FC<MermaidProps> = ({ chart }) => {
     const ref = useRef<HTMLDivElement>(null);
+    const zoomRef = useRef<HTMLDivElement>(null);
+    const [isMaximized, setIsMaximized] = React.useState(false);
 
-    useEffect(() => {
-        if (ref.current && chart) {
+    const renderMermaid = async (targetRef: React.RefObject<HTMLDivElement | null>, containerId: string) => {
+        if (targetRef.current && chart) {
+            const cleanChart = chart
+                .replace(/^```mermaid\s*/, "")
+                .replace(/```$/, "")
+                .trim();
+
+            const renderId = `${containerId}-${Math.random().toString(36).substr(2, 9)}`;
+            targetRef.current.innerHTML = `<div id="${renderId}" class="mermaid-container w-full h-full">${cleanChart}</div>`;
+
             try {
-                mermaid.contentLoaded();
-                // Clear previous content
-                ref.current.innerHTML = `<div class="mermaid">${chart}</div>`;
-                mermaid.init(undefined, ref.current.children[0] as HTMLElement);
+                await mermaid.run({
+                    querySelector: `#${renderId}`,
+                });
+
+                // Post-render fix for responsiveness and auto-layout
+                const svg = targetRef.current.querySelector('svg');
+                if (svg) {
+                    svg.style.maxWidth = '100%';
+                    svg.style.height = 'auto';
+                    svg.style.display = 'block';
+                    svg.style.margin = '0 auto';
+                }
             } catch (err) {
                 console.error("Mermaid render error:", err);
+                if (targetRef.current) {
+                    let errorMessage = "An unknown error occurred during Mermaid rendering.";
+                    if (err instanceof Error) {
+                        errorMessage = err.message;
+                    } else if (typeof err === 'string') {
+                        errorMessage = err;
+                    } else if (err && typeof err === 'object') {
+                        try {
+                            // Some mermaid errors are complex objects, try to find a message or stringify
+                            errorMessage = (err as any).message || (err as any).str || JSON.stringify(err);
+                        } catch (e) {
+                            errorMessage = "Complex Mermaid error (see console)";
+                        }
+                    }
+
+                    targetRef.current.innerHTML = `
+                        <div class="p-4 text-red-500 font-mono text-xs win98-inset bg-white flex flex-col gap-2">
+                            <div>
+                                <p class="font-bold">Mermaid Error:</p>
+                                <p>${errorMessage}</p>
+                            </div>
+                            <div class="mt-2 pt-2 border-t border-red-100">
+                                <p class="text-[10px] text-gray-500 mb-1 italic">Render Source:</p>
+                                <pre class="p-2 bg-gray-50 rounded border border-gray-100 text-gray-700 break-all whitespace-pre-wrap">${cleanChart}</pre>
+                            </div>
+                        </div>`;
+                }
             }
         }
+    };
+
+    useEffect(() => {
+        renderMermaid(ref, 'mermaid-main');
     }, [chart]);
 
+    useEffect(() => {
+        if (isMaximized) {
+            const timer = setTimeout(() => {
+                renderMermaid(zoomRef, 'mermaid-zoom');
+            }, 50);
+            return () => clearTimeout(timer);
+        }
+    }, [isMaximized, chart]);
+
     return (
-        <div className="win98-inset bg-white p-4 overflow-auto flex justify-center" ref={ref} />
+        <>
+            <div className="relative group border border-gray-100 rounded-xl bg-white p-2 overflow-auto flex justify-center h-full min-h-[400px]">
+                <div ref={ref} className="w-full h-full" />
+                <button
+                    onClick={() => setIsMaximized(true)}
+                    className="absolute top-2 right-2 px-2 py-1 bg-gray-900 text-white text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity rounded-md z-10"
+                >
+                    Expand
+                </button>
+            </div>
+
+            {isMaximized && (
+                <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
+                    <div className="w-full h-[95vh] max-w-[95vw]">
+                        <Card
+                            title="Architectural Diagram - Maximized View"
+                            className="h-full"
+                        >
+                            <div className="flex flex-col h-full uppercase tracking-widest font-bold text-[10px] text-gray-400">
+                                Maximized View
+                                <div className="flex-1 bg-white border border-gray-100 rounded-xl overflow-auto flex justify-center items-center p-4 mt-2" ref={zoomRef} />
+                                <div className="mt-4 flex justify-end">
+                                    <Button onClick={() => setIsMaximized(false)}>Close Diagram</Button>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+                </div>
+            )}
+        </>
     );
 };
 

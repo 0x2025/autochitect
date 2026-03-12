@@ -1,86 +1,208 @@
-import { Window, Button } from "@/components/win98-ui";
+"use client";
+
+import { useState, useEffect } from "react";
+import { Card, Button } from "@/components/ui";
 import Link from "next/link";
-import { Terminal, FileText, Zap, Shield, Play } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface ScanTask {
+  repoUrl: string;
+  repoId: string;
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  timestamp: number;
+  findingsCount?: number;
+  error?: string;
+}
 
 export default function Home() {
+  const [repoUrl, setRepoUrl] = useState("https://github.com/simplcommerce/SimplCommerce");
+  const [recentScans, setRecentScans] = useState<ScanTask[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasNext, setHasNext] = useState(false);
+
+  useEffect(() => {
+    fetchRecentScans(page);
+  }, [page]);
+
+  const fetchRecentScans = async (pageNum: number) => {
+    try {
+      const res = await fetch(`/api/reports?page=${pageNum}&limit=5`);
+      const data = await res.json();
+      setRecentScans(data.tasks || []);
+      setHasNext(data.hasNext || false);
+    } catch (err) {
+      console.error("Failed to fetch recent scans", err);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!repoUrl) return;
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoUrl }),
+      });
+      const data = await res.json();
+      if (data.repoId) {
+        setRepoUrl("");
+        setPage(1); // Reset to first page to see new scan
+        fetchRecentScans(1);
+      }
+    } catch (err) {
+      alert("Failed to start analysis");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="max-w-4xl w-full flex flex-col gap-8">
-      <Window title="Autochitect - Welcome" icon={<Zap className="w-4 h-4" />}>
-        <div className="flex flex-col md:flex-row gap-8 items-center p-6 bg-win-white win98-inset">
-          <div className="flex-1 space-y-4">
-            <h1 className="text-3xl font-bold border-b-2 border-win-black pb-2">Autochitect v1.0.0</h1>
-            <p className="text-lg">
-              Autonomous architectural discovery and audit engine. Map your code geometry,
-              enforce institutional memory, and validate agent-derived findings.
-            </p>
-            <div className="flex gap-4 pt-4">
-              <Link href="/report">
-                <Button className="flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Load Agent Report
-                </Button>
-              </Link>
-              <Link href="#guide">
-                <Button className="flex items-center gap-2">
-                  <Play className="w-4 h-4" />
-                  How to Run
-                </Button>
-              </Link>
-            </div>
-          </div>
-          <div className="win98-inset bg-black p-4 text-green-500 font-mono text-sm hidden md:block">
-            <p>{">"} autochitect --analyze ./repo</p>
-            <p>Scanning L1 Context...</p>
-            <p className="text-white">Found Dockerfile, .NET API</p>
-            <p>Spawning Specialist Experts...</p>
-            <p className="text-yellow-400">OWASP Expert: 2 Critical Findings</p>
-            <p>Synthesizing structured_report.json</p>
-            <p className="animate-pulse">_</p>
-          </div>
+    <div className="space-y-12">
+      {/* Title Section */}
+      <section className="space-y-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Autochitect</h1>
+          <p className="text-gray-500 font-medium">Autonomous Architectural Analysis for Software Systems.</p>
         </div>
-      </Window>
+      </section>
 
-      <Window id="guide" title="Guide: How to Run Analyze" icon={<Terminal className="w-4 h-4" />}>
-        <div className="space-y-6">
-          <section>
-            <h3 className="text-xl font-bold flex items-center gap-2 mb-2">
-              <Zap className="w-5 h-5 text-win-blue" />
-              Direct with Local Agent
-            </h3>
-            <div className="bg-win-white p-4 win98-inset space-y-2">
-              <p>1. Clone the repository and navigate to <code>poc_agent_runner</code>.</p>
-              <p>2. Set up environment variables in <code>.env</code> (GITHUB_TOKEN, GOOGLE_API_KEY).</p>
-              <p>3. Run the following command:</p>
-              <pre className="bg-black text-white p-2 rounded text-xs overflow-x-auto">
-                npm install && npm run start
-              </pre>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="text-xl font-bold flex items-center gap-2 mb-2">
-              <Zap className="w-5 h-5 text-win-blue" />
-              Via Docker (Cloud Runner)
-            </h3>
-            <div className="bg-win-white p-4 win98-inset space-y-2">
-              <p>Pull and run our latest pre-configured agent container:</p>
-              <pre className="bg-black text-white p-2 rounded text-xs overflow-x-auto">
-                docker pull sangcungoc/autochitect:latest{"\n"}
-                docker run -e GOOGLE_API_KEY=$KEY -e TARGET_REPO_URL=$URL -v $(pwd):/app/output sangcungoc/autochitect:latest
-              </pre>
-              <p className="text-xs text-win-dark-gray italic mt-2">
-                * Ensure you mount your local volume or provide git credentials for private repos.
+      {/* Main Analyzer Card */}
+      <Card title="Start New Analysis">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3">
+              <label htmlFor="repo-url" className="text-sm font-semibold text-gray-700">GitHub Repository URL</label>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  id="repo-url"
+                  type="text"
+                  value={repoUrl}
+                  onChange={(e) => setRepoUrl(e.target.value)}
+                  placeholder="e.g. https://github.com/user/repo"
+                  className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 outline-none transition-all font-mono text-sm"
+                  autoFocus
+                  disabled={isSubmitting}
+                />
+                <Button type="submit" disabled={isSubmitting || !repoUrl} className="h-[46px] px-8">
+                  {isSubmitting ? "Running..." : "Analyze System"}
+                </Button>
+              </div>
+              <p className="text-[11px] text-gray-400 flex items-center gap-1.5 uppercase tracking-wider font-bold">
+                Supports public repositories only
               </p>
             </div>
-          </section>
-
-          <div className="flex justify-center pt-2">
-            <Link href="/report">
-              <Button inset className="px-8 font-bold">READY TO VALIDATE REPORT -{">"}</Button>
-            </Link>
           </div>
+        </form>
+      </Card>
+
+      {/* Recent Activity */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+          <div className="text-sm font-semibold uppercase tracking-wider text-gray-400">
+            Recent Scans
+          </div>
+          <button
+            onClick={() => fetchRecentScans(page)}
+            className="text-[11px] font-bold text-gray-400 hover:text-gray-900 transition-colors flex items-center gap-1.5 uppercase tracking-widest"
+          >
+            {isSubmitting ? "Refreshing..." : "Refresh"}
+          </button>
         </div>
-      </Window>
+
+        <div className="space-y-4">
+          {recentScans.length > 0 ? (
+            recentScans.map((scan) => (
+              <div
+                key={scan.repoId}
+                className="group flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white hover:shadow-lg hover:shadow-gray-100 transition-all gap-4"
+              >
+                <div className="flex flex-col gap-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-gray-900 truncate">{scan.repoId}</span>
+                  </div>
+                  <span className="text-xs text-gray-400">
+                    {new Date(scan.timestamp).toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between sm:justify-end gap-6 shrink-0">
+                  <StatusBadge status={scan.status} count={scan.findingsCount} error={scan.error} />
+                  {scan.status === "COMPLETED" && (
+                    <Link href={`/report?repoId=${scan.repoId}`}>
+                      <Button variant="secondary" className="px-5 py-1.5 h-9">View Report</Button>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="py-20 text-center border-2 border-dashed border-gray-100 rounded-3xl">
+              <p className="text-gray-400 text-sm italic font-medium">No system scans found yet.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {recentScans.length > 0 && (
+          <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+            <Button
+              variant="secondary"
+              disabled={page === 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              className="text-xs px-4"
+            >
+              Previous
+            </Button>
+            <span className="text-xs font-bold text-gray-300 uppercase tracking-widest">
+              Page {page}
+            </span>
+            <Button
+              variant="secondary"
+              disabled={!hasNext}
+              onClick={() => setPage(p => p + 1)}
+              className="text-xs px-4 group"
+            >
+              Next
+            </Button>
+          </div>
+        )}
+      </section>
+
+      {/* Info Footer */}
+      <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 font-mono text-[11px] text-gray-500 opacity-80 leading-relaxed">
+        <p>
+          autochitect --version 1.4.2
+        </p>
+        <p className="mt-1">
+          Ready for autonomous architecture discovery and pattern recognition.
+        </p>
+      </div>
     </div>
   );
+}
+
+function StatusBadge({ status, count, error }: { status: ScanTask["status"]; count?: number; error?: string }) {
+  switch (status) {
+    case "PENDING":
+      return <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Queued</span>;
+    case "RUNNING":
+      return <span className="text-[11px] font-bold text-blue-500 uppercase tracking-wider">Running</span>;
+    case "FAILED":
+      return (
+        <div className="flex flex-col items-end gap-0.5">
+          <span className="text-[11px] font-bold text-red-500 uppercase tracking-wider" title={error}>Failed</span>
+          {error && <span className="text-[10px] text-red-300 max-w-[150px] truncate italic" title={error}>{error}</span>}
+        </div>
+      );
+    case "COMPLETED":
+      return (
+        <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+          {count !== undefined ? `${count} Issues Found` : "Analysis Complete"}
+        </span>
+      );
+  }
 }

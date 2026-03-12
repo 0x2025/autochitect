@@ -1,0 +1,16 @@
+[
+  {
+    "repoUrl": "https://github.com/karpathy/nanochat",
+    "repoId": "github-com-karpathy-nanochat",
+    "status": "COMPLETED",
+    "timestamp": 1773233418619,
+    "findingsCount": 4
+  },
+  {
+    "repoUrl": "https://github.com/simplcommerce/SimplCommerce",
+    "repoId": "github-com-simplcommerce-simplcommerce",
+    "status": "COMPLETED",
+    "timestamp": 1773229956485,
+    "findingsCount": 3
+  }
+]

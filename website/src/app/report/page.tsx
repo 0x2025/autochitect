@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Window, Button } from "@/components/win98-ui";
-import { FileUp, Save, Check, X, AlertCircle, Info, ChevronRight, ChevronDown, Layout } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Card, Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import Mermaid from "@/components/mermaid";
+import { useSearchParams, useRouter } from "next/navigation";
 
 interface Finding {
     id: string;
@@ -27,14 +27,54 @@ interface StructuredReport {
         c3: string;
     };
     findings: Finding[];
+    discoveredLanguages?: string[];
 }
 
 export default function ReportPage() {
     const [report, setReport] = useState<StructuredReport | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
     const [validatedFindings, setValidatedFindings] = useState<Record<string, { valid: boolean, rationale: string }>>({});
     const [expandedFinding, setExpandedFinding] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"c1" | "c2" | "c3">("c1");
+    const [isSavingMoat, setIsSavingMoat] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const repoId = searchParams.get("repoId");
+    const source = searchParams.get("source");
+
+    useEffect(() => {
+        if (repoId) {
+            fetchReport(repoId);
+        } else if (source === "local") {
+            const temp = localStorage.getItem("temp_report");
+            if (temp) {
+                try {
+                    setReport(JSON.parse(temp));
+                } catch (e) {
+                    console.error("Failed to parse local report");
+                }
+            }
+        }
+    }, [repoId, source]);
+
+    const fetchReport = async (id: string) => {
+        setIsLoading(true);
+        try {
+            const res = await fetch(`/api/reports/${id}`);
+            if (res.ok) {
+                const data = await res.json();
+                setReport(data);
+            } else {
+                console.error("Report not found or not yet completed");
+            }
+        } catch (err) {
+            console.error("Failed to load report");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -52,18 +92,32 @@ export default function ReportPage() {
         }
     };
 
-    const handleValidation = (id: string, isValid: boolean) => {
-        setValidatedFindings(prev => ({
-            ...prev,
-            [id]: { ...prev[id], valid: isValid }
-        }));
-    };
+    const handleMoatConfirmation = async (finding: Finding, isValid: boolean) => {
+        setIsSavingMoat(finding.id);
+        try {
+            const res = await fetch("/api/moat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    finding,
+                    is_valid: isValid,
+                    tech_stack: report?.discoveredLanguages || []
+                })
+            });
 
-    const handleRationaleChange = (id: string, rationale: string) => {
-        setValidatedFindings(prev => ({
-            ...prev,
-            [id]: { ...prev[id], rationale }
-        }));
+            if (res.ok) {
+                setValidatedFindings(prev => ({
+                    ...prev,
+                    [finding.id]: { valid: isValid, rationale: "Saved to Moat" }
+                }));
+            } else {
+                alert("Failed to save validation status");
+            }
+        } catch (err) {
+            alert("Error connecting to validation service");
+        } finally {
+            setIsSavingMoat(null);
+        }
     };
 
     const handleExport = () => {
@@ -79,182 +133,257 @@ export default function ReportPage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "validated_report.json";
+        a.download = `analysis_report_${new Date().toISOString().split('T')[0]}.json`;
         a.click();
     };
 
+    const getHealthColor = (health: string) => {
+        switch (health) {
+            case "POOR": return "bg-red-50 text-red-700 border-red-100";
+            case "FAIR": return "bg-amber-50 text-amber-700 border-amber-100";
+            case "GOOD": return "bg-emerald-50 text-emerald-700 border-emerald-100";
+            default: return "bg-gray-50 text-gray-700 border-gray-100";
+        }
+    };
+
+    const getCriticalityStyles = (criticality: string) => {
+        switch (criticality) {
+            case "CRITICAL": return "bg-red-100 text-red-800 border-red-200";
+            case "HIGH": return "bg-orange-100 text-orange-800 border-orange-200";
+            case "MEDIUM": return "bg-amber-100 text-amber-800 border-amber-200";
+            case "LOW": return "bg-blue-100 text-blue-800 border-blue-200";
+            default: return "bg-gray-100 text-gray-800 border-gray-200";
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 py-20">
+                <p className="text-gray-500 text-sm font-bold tracking-widest uppercase animate-pulse">Generating Report</p>
+            </div>
+        );
+    }
+
     if (!report) {
         return (
-            <div className="max-w-2xl w-full">
-                <Window title="Load Agent Report" icon={<FileUp className="w-4 h-4" />}>
-                    <div className="text-center space-y-6 py-8">
-                        <div className="flex justify-center">
-                            <div className="win98-inset bg-win-white p-8 rounded-full">
-                                <FileUp className="w-12 h-12 text-win-blue" />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <h2 className="text-xl font-bold">Import report.json</h2>
-                            <p className="text-sm text-win-dark-gray">Select the structured JSON output generated by the agent.</p>
-                        </div>
-                        <Button onClick={() => fileInputRef.current?.click()}>
-                            CHOOSE FILE
-                        </Button>
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            className="hidden"
-                            accept=".json"
-                            onChange={handleFileUpload}
-                        />
+            <div className="max-w-xl mx-auto py-20 px-4">
+                <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="group relative border border-gray-100 rounded-3xl p-16 text-center cursor-pointer hover:border-gray-300 hover:bg-gray-50/50 transition-all duration-300"
+                >
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept=".json"
+                        onChange={handleFileUpload}
+                    />
+                    <div className="flex flex-col items-center">
+                        <h2 className="text-xl font-bold text-gray-900 mb-2">Upload Analysis Report</h2>
+                        <p className="text-gray-400 text-[11px] font-bold uppercase tracking-widest max-w-xs mx-auto mt-4">
+                            Drop report.json here
+                        </p>
                     </div>
-                </Window>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Sidebar: Summary & Health */}
-            <div className="lg:col-span-1 space-y-6">
-                <Window title="System Health" icon={<Info className="w-4 h-4" />}>
-                    <div className={cn(
-                        "p-4 text-center font-bold text-2xl win98-inset mb-4",
-                        report.health === "POOR" ? "bg-red-500 text-white" :
-                            report.health === "FAIR" ? "bg-yellow-400 text-black" : "bg-green-500 text-white"
-                    )}>
-                        {report.health}
-                    </div>
-                    <div className="bg-win-white p-3 win98-inset text-sm h-48 overflow-auto">
-                        <p>{report.summary}</p>
-                    </div>
-                </Window>
-
-                {report.diagrams && (report.diagrams.c1 || report.diagrams.c2 || report.diagrams.c3) && (
-                    <Window title="C4 Model Diagrams" icon={<Layout className="w-4 h-4" />}>
-                        <div className="flex gap-1 mb-4">
-                            {(["c1", "c2", "c3"] as const).map((tab) => (
-                                <Button
-                                    key={tab}
-                                    className={cn("flex-1 text-xs", activeTab === tab ? "bg-win-blue text-white" : "")}
-                                    onClick={() => setActiveTab(tab)}
-                                >
-                                    {tab.toUpperCase()}
-                                </Button>
-                            ))}
-                        </div>
-                        <div className="min-h-[300px]">
-                            {report.diagrams[activeTab] ? (
-                                <Mermaid chart={report.diagrams[activeTab]} />
-                            ) : (
-                                <div className="flex items-center justify-center h-[300px] win98-inset bg-gray-100 text-xs italic">
-                                    No {activeTab.toUpperCase()} diagram found.
-                                </div>
-                            )}
-                        </div>
-                    </Window>
-                )}
-
-                <Window title="Actions" icon={<Save className="w-4 h-4" />}>
-                    <div className="space-y-4">
-                        <div className="text-xs text-win-dark-gray italic">
-                            Validated: {Object.keys(validatedFindings).length} / {report.findings.length}
-                        </div>
-                        <Button className="w-full bg-blue-100" onClick={handleExport}>
-                            EXPORT VALIDATED REPORT
-                        </Button>
-                        <Button className="w-full" onClick={() => setReport(null)}>
-                            LOAD DIFFERENT FILE
-                        </Button>
-                    </div>
-                </Window>
-            </div>
-
-            {/* Main: Findings List */}
-            <div className="lg:col-span-2 space-y-4">
-                <h2 className="text-xl font-bold text-white drop-shadow-md flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5" />
-                    Detected Findings
-                </h2>
-
-                {report.findings.map((finding) => (
-                    <Window
-                        key={finding.id}
-                        title={`${finding.criticality}: ${finding.title}`}
-                        className={cn(
-                            "transition-all",
-                            expandedFinding === finding.id ? "ring-2 ring-win-blue" : ""
-                        )}
+        <div className="max-w-6xl mx-auto px-4 py-12 space-y-12">
+            {/* Header */}
+            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-gray-100 pb-8">
+                <div className="space-y-4">
+                    <button
+                        onClick={() => router.push("/")}
+                        className="text-[10px] font-bold text-gray-400 hover:text-gray-900 transition-colors uppercase tracking-widest"
                     >
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-start">
-                                <div className="space-y-1">
-                                    <p className="text-sm font-bold underline">Impact:</p>
-                                    <p className="text-sm">{finding.impact}</p>
-                                </div>
-                                <Button
-                                    onClick={() => setExpandedFinding(expandedFinding === finding.id ? null : finding.id)}
-                                    className="p-0 w-6 h-6 flex items-center justify-center"
-                                >
-                                    {expandedFinding === finding.id ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                                </Button>
-                            </div>
+                        Back to Projects
+                    </button>
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">Architecture Report</h1>
+                    <p className="text-gray-500 font-medium">Comprehensive analysis of system design and code quality.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleExport}
+                        className="px-6 py-2.5 border border-gray-200 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-50 transition-colors"
+                    >
+                        Export Data
+                    </button>
+                </div>
+            </header>
 
-                            {expandedFinding === finding.id && (
-                                <div className="space-y-4 pt-4 border-t border-win-dark-gray">
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-bold underline">Description:</p>
-                                        <p className="text-sm whitespace-pre-wrap">{finding.description}</p>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-bold underline">Recommendation:</p>
-                                        <p className="text-sm italic">{finding.recommendation}</p>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-bold underline">Affected Files:</p>
-                                        <ul className="text-xs font-mono bg-black text-green-400 p-2 win98-inset max-h-24 overflow-auto">
-                                            {finding.files.map(f => <li key={f}>{f}</li>)}
-                                        </ul>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="pt-4 border-t border-win-dark-gray flex flex-col md:flex-row gap-4 items-end">
-                                <div className="flex-1 space-y-1 w-full">
-                                    <p className="text-xs font-bold">Validation Rationale:</p>
-                                    <textarea
-                                        className="w-full p-2 h-16 text-sm win98-inset bg-win-white outline-none"
-                                        placeholder="Enter why this finding is valid or invalid..."
-                                        value={validatedFindings[finding.id]?.rationale || ""}
-                                        onChange={(e) => handleRationaleChange(finding.id, e.target.value)}
-                                    />
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button
-                                        className={cn(
-                                            "flex items-center gap-1",
-                                            validatedFindings[finding.id]?.valid === true ? "bg-green-200 outline outline-2 outline-green-600" : ""
-                                        )}
-                                        onClick={() => handleValidation(finding.id, true)}
-                                    >
-                                        <Check className="w-4 h-4" />
-                                        VALID
-                                    </Button>
-                                    <Button
-                                        className={cn(
-                                            "flex items-center gap-1",
-                                            validatedFindings[finding.id]?.valid === false ? "bg-red-200 outline outline-2 outline-red-600" : ""
-                                        )}
-                                        onClick={() => handleValidation(finding.id, false)}
-                                    >
-                                        <X className="w-4 h-4" />
-                                        INVALID
-                                    </Button>
-                                </div>
-                            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                {/* Information Column */}
+                <aside className="lg:col-span-4 space-y-12">
+                    {/* Health Section */}
+                    <section className="space-y-4">
+                        <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
+                            System Health
                         </div>
-                    </Window>
-                ))}
+                        <div className={cn(
+                            "px-4 py-3 rounded-xl border font-bold text-center text-lg tracking-tight",
+                            getHealthColor(report.health)
+                        )}>
+                            {report.health}
+                        </div>
+                        <div className="text-gray-600 text-sm leading-relaxed bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                            {report.summary}
+                        </div>
+                    </section>
+
+                    {/* Diagram Section */}
+                    {report.diagrams && (report.diagrams.c1 || report.diagrams.c2 || report.diagrams.c3) && (
+                        <section className="space-y-4">
+                            <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
+                                Model Diagrams
+                            </div>
+                            <div className="border border-gray-100 rounded-2xl overflow-hidden bg-white">
+                                <nav className="flex items-center border-b border-gray-100 bg-gray-50/50 p-1">
+                                    {(["c1", "c2", "c3"] as const).map((tab) => (
+                                        <button
+                                            key={tab}
+                                            onClick={() => setActiveTab(tab)}
+                                            className={cn(
+                                                "flex-1 py-2 text-[10px] font-bold transition-all rounded-lg uppercase tracking-widest",
+                                                activeTab === tab
+                                                    ? "bg-white text-gray-900 shadow-sm border border-gray-100"
+                                                    : "text-gray-400 hover:text-gray-600"
+                                            )}
+                                        >
+                                            {tab}
+                                        </button>
+                                    ))}
+                                </nav>
+                                <div className="p-4 bg-white min-h-[300px] flex items-center justify-center">
+                                    {report.diagrams[activeTab] ? (
+                                        <div className="w-full">
+                                            <Mermaid chart={report.diagrams[activeTab]} />
+                                        </div>
+                                    ) : (
+                                        <div className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                                            No Data
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </section>
+                    )}
+                </aside>
+
+                {/* Findings Column */}
+                <main className="lg:col-span-8 space-y-8">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                        <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
+                            Findings ({report.findings.length})
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {report.findings.map((finding) => (
+                            <div
+                                key={finding.id}
+                                className={cn(
+                                    "group border border-gray-100 rounded-2xl overflow-hidden bg-white transition-all",
+                                    validatedFindings[finding.id] ? "opacity-60 bg-gray-50/50" : "hover:border-gray-200 hover:shadow-xl hover:shadow-gray-100/50"
+                                )}
+                            >
+                                <div className="p-6 space-y-6">
+                                    <div className="flex items-start justify-between gap-6">
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className={cn(
+                                                    "px-2 py-0.5 rounded-lg text-[10px] font-bold border uppercase tracking-widest",
+                                                    getCriticalityStyles(finding.criticality)
+                                                )}>
+                                                    {finding.criticality}
+                                                </span>
+                                                <h3 className="text-lg font-bold text-gray-900 leading-tight tracking-tight">
+                                                    {finding.title}
+                                                </h3>
+                                            </div>
+                                            <p className="text-gray-500 text-sm leading-relaxed font-medium">
+                                                {finding.impact}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => setExpandedFinding(expandedFinding === finding.id ? null : finding.id)}
+                                            className="px-3 py-1 bg-gray-50 hover:bg-gray-100 rounded-lg text-[10px] font-bold text-gray-400 uppercase tracking-widest transition-colors shrink-0"
+                                        >
+                                            {expandedFinding === finding.id ? "Hide" : "Show"}
+                                        </button>
+                                    </div>
+
+                                    {expandedFinding === finding.id && (
+                                        <div className="space-y-8 pt-6 border-t border-gray-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                <div className="space-y-3">
+                                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                                        Description
+                                                    </h4>
+                                                    <p className="text-sm text-gray-600 leading-relaxed bg-gray-50/50 p-5 rounded-2xl border border-gray-100">
+                                                        {finding.description}
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                                        Recommendation
+                                                    </h4>
+                                                    <p className="text-sm text-gray-900 font-bold leading-relaxed bg-blue-50/50 p-5 rounded-2xl border border-blue-100 italic">
+                                                        {finding.recommendation}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                                    Evidence
+                                                </h4>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {finding.files.map(f => (
+                                                        <span key={f} className="inline-flex items-center font-mono text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                                                            {f.split('/').pop()}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {!validatedFindings[finding.id] ? (
+                                        <div className="pt-2 flex items-center gap-3">
+                                            <button
+                                                disabled={isSavingMoat === finding.id}
+                                                onClick={() => handleMoatConfirmation(finding, true)}
+                                                className="flex-1 sm:flex-initial px-8 py-2.5 bg-gray-900 text-white rounded-xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-800 disabled:opacity-50 transition-all"
+                                            >
+                                                {isSavingMoat === finding.id ? "Saving" : "Accept"}
+                                            </button>
+                                            <button
+                                                disabled={isSavingMoat === finding.id}
+                                                onClick={() => handleMoatConfirmation(finding, false)}
+                                                className="flex-1 sm:flex-initial px-8 py-2.5 bg-white text-gray-400 border border-gray-200 rounded-xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-50 hover:text-red-500 transition-all"
+                                            >
+                                                Reject
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="pt-2">
+                                            <div className={cn(
+                                                "inline-flex px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest",
+                                                validatedFindings[finding.id].valid
+                                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                                                    : "bg-red-50 text-red-700 border border-red-100"
+                                            )}>
+                                                {validatedFindings[finding.id].valid ? "Validated" : "Dismissed"}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </main>
             </div>
         </div>
     );

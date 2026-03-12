@@ -29,5 +29,40 @@
     "pattern": "synchronous database operations",
     "rationale": "Blocking calls in high-traffic ASP.NET Core paths leads to thread pool starvation. Always use async/await (e.g. ToListAsync).",
     "human_verdict": "CORRECT"
+  },
+  {
+    "lesson_id": "L004",
+    "tech_stack": [],
+    "violation_type": "SECURITY_RISK",
+    "pattern": "Missing Security Considerations",
+    "rationale": "The architectural review completely omits any discussion of security considerations such as authentication, authorization, data protection, and input validation. This is a fundamental oversight.\n\nRecommendation: Implement security best practices, including authentication, authorization, data protection, and input validation. Conduct a thorough security assessment to identify and address potential vulnerabilities.",
+    "human_verdict": "CORRECT"
+  },
+  {
+    "lesson_id": "L005",
+    "tech_stack": [],
+    "violation_type": "SECURITY_RISK",
+    "pattern": "Lack of Modularity Assessment",
+    "rationale": "The report doesn't delve into the modularity of the application, which is crucial for maintainability, testability, and independent deployment of components. The report should have touched upon how the application is structured into modules or components and how dependencies are managed.\n\nRecommendation: Assess the modularity of the application and refactor the code to improve modularity. Use well-defined modules or components with clear interfaces and dependencies.",
+    "human_verdict": "CORRECT"
+  },
+  {
+    "lesson_id": "L006",
+    "tech_stack": [],
+    "violation_type": "PERFORMANCE_BOTTLENECK",
+    "pattern": "Lack of Observability Assessment",
+    "rationale": "While logging is mentioned, the report doesn't discuss other aspects of observability, such as metrics and tracing. These are crucial for monitoring the health and performance of the application in production.\n\nRecommendation: Implement metrics and tracing to improve observability. Use a monitoring tool to track the health and performance of the application in production.",
+    "human_verdict": "CORRECT"
+  },
+  {
+    "lesson_id": "L007",
+    "tech_stack": [
+      "python",
+      "fastapi"
+    ],
+    "violation_type": "SECURITY_RISK",
+    "pattern": "Missing Security Considerations - Authentication and Authorization",
+    "rationale": "The application lacks authentication and authorization mechanisms. The `/chat/completions` endpoint is publicly accessible without any form of authentication, allowing anyone to send requests. This exposes the application to unauthorized access, data breaches, and denial-of-service attacks.\n\nRecommendation: Implement authentication and authorization mechanisms to control access to the `/chat/completions` endpoint. Consider using industry-standard protocols like OAuth 2.0 or JWT for authentication. Implement role-based access control (RBAC) to restrict access to sensitive resources based on user roles.",
+    "human_verdict": "CORRECT"
   }
 ]

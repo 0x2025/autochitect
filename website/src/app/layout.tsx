@@ -24,9 +24,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased font-sans">
-        <div className="min-h-screen bg-[#008080] p-4 lg:p-8 flex items-center justify-center overflow-auto">
-          {children}
+      <body className="antialiased font-sans bg-white text-gray-900">
+        <div className="min-h-screen">
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            {children}
+          </main>
         </div>
       </body>
     </html>

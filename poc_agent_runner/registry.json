@@ -483,5 +483,288 @@
             "get_component_details_ast",
             "find_infrastructure_signals"
         ]
+    },
+    {
+        "expert_id": "PYTHON_DATA_EXPERT",
+        "specialties": [
+            "Pandas/NumPy",
+            "Data Pipelines",
+            "ETL Architecture",
+            "Data Science Best Practices"
+        ],
+        "triggers": {
+            "file_patterns": [
+                ".py",
+                ".ipynb",
+                "requirements.txt"
+            ],
+            "dependency_match": [
+                "pandas",
+                "numpy",
+                "scikit-learn",
+                "dask"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".py",
+                ".ipynb",
+                ".csv",
+                ".parquet"
+            ]
+        },
+        "expert_prompt_ref": "Python Data Engineering Expert. Focus on performance of data pipelines, vectorization (NumPy/Pandas), and memory-efficient data processing.",
+        "tools": [
+            "read_file",
+            "list_directory",
+            "search_codebase"
+        ]
+    },
+    {
+        "expert_id": "AGENTIC_EXPERT",
+        "specialties": [
+            "LLM Orchestration",
+            "Tool-Use Logic",
+            "Prompt Engineering",
+            "Agent Reliability"
+        ],
+        "triggers": {
+            "file_patterns": [
+                ".ts",
+                ".py",
+                ".js"
+            ],
+            "dependency_match": [
+                "langchain",
+                "langgraph",
+                "openai",
+                "anthropic",
+                "autogen"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".ts",
+                ".py",
+                ".js",
+                ".json",
+                ".md"
+            ]
+        },
+        "expert_prompt_ref": "Agentic Systems Expert. Audit for robust tool handling, prompt injection risks, agent state management, and LLM-cost optimization.",
+        "tools": [
+            "read_file",
+            "search_codebase",
+            "get_repository_map"
+        ]
+    },
+    {
+        "expert_id": "AGENT_PATTERNS_EXPERT",
+        "specialties": [
+            "Multi-Agent Collaboration",
+            "Hierarchical Planning",
+            "Self-Correction Loops",
+            "Reflection Patterns"
+        ],
+        "triggers": {
+            "file_patterns": [
+                "graph.ts",
+                "agents.py",
+                "workflow"
+            ],
+            "dependency_match": [
+                "langgraph",
+                "crewai",
+                "semantic-kernel"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".ts",
+                ".py",
+                ".md"
+            ]
+        },
+        "expert_prompt_ref": "Agentic Design Patterns Specialist. Audit for multi-agent coordination, recursive task decomposition, and verification loops.",
+        "tools": [
+            "read_file",
+            "get_repository_map",
+            "get_component_details_ast"
+        ]
+    },
+    {
+        "expert_id": "MLOPS_EXPERT",
+        "specialties": [
+            "Model Serving",
+            "Experiment Tracking",
+            "Feature Stores",
+            "Model Monitoring"
+        ],
+        "triggers": {
+            "file_patterns": [
+                "Dockerfile",
+                ".py",
+                ".yaml"
+            ],
+            "dependency_match": [
+                "mlflow",
+                "bentoml",
+                "seldon",
+                "kubeflow",
+                "wandb"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".py",
+                ".yaml",
+                ".yml",
+                "Dockerfile"
+            ]
+        },
+        "expert_prompt_ref": "MLOps & ML Infrastructure Architect. Audit for reproducible pipelines, model versioning, serving latency, and monitoring strategies.",
+        "tools": [
+            "read_file",
+            "list_directory",
+            "find_infrastructure_signals"
+        ]
+    },
+    {
+        "expert_id": "PYTHON_EXPERT",
+        "specialties": [
+            "PEP8/Idiomatic Python",
+            "Asyncio/Concurrency",
+            "Type Hinting",
+            "Pythonic Patterns"
+        ],
+        "triggers": {
+            "file_patterns": [
+                ".py"
+            ],
+            "dependency_match": [
+                "pytest",
+                "fastapi",
+                "django",
+                "flask"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".py"
+            ]
+        },
+        "expert_prompt_ref": "Elite Python Architect. Audit for idiomatic library usage, async/await performance, and resource management (context managers/generators).",
+        "tools": [
+            "read_file",
+            "get_component_details_ast",
+            "search_codebase"
+        ]
+    },
+    {
+        "expert_id": "PERFORMANCE_EXPERT",
+        "specialties": [
+            "Latency Optimization",
+            "Throughput Scaling",
+            "Caching Strategies",
+            "Resource Efficiency"
+        ],
+        "triggers": {
+            "file_patterns": [
+                "cache",
+                "redis",
+                "perf"
+            ],
+            "dependency_match": [
+                "redis",
+                "memcached",
+                "benchmark"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".cs",
+                ".java",
+                ".ts",
+                ".py",
+                ".go"
+            ]
+        },
+        "expert_prompt_ref": "High-Performance Computing & Systems Expert. Audit for N+1 queries, lack of caching, thread contention, and memory leaks.",
+        "tools": [
+            "read_file",
+            "search_codebase",
+            "find_infrastructure_signals"
+        ]
+    },
+    {
+        "expert_id": "SYSTEM_DESIGN_EXPERT",
+        "specialties": [
+            "Distributed Systems",
+            "Microservices",
+            "Event-Driven Architecture",
+            "Availability/Fault Tolerance"
+        ],
+        "triggers": {
+            "file_patterns": [
+                "docker-compose",
+                "k8s",
+                "service"
+            ],
+            "dependency_match": [
+                "kafka",
+                "rabbitmq",
+                "grpc",
+                "envoy"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".yaml",
+                ".yml",
+                ".json",
+                ".proto"
+            ]
+        },
+        "expert_prompt_ref": "Distributed Systems Architect. Audit for single points of failure, message guarantee mismatches, and improper service decomposition.",
+        "tools": [
+            "read_file",
+            "get_repository_map",
+            "find_infrastructure_signals"
+        ]
+    },
+    {
+        "expert_id": "SECURITY_EXPERT",
+        "specialties": [
+            "IAM & RBAC",
+            "Encryption at Rest/Transit",
+            "Policy Enforcement",
+            "Network Security"
+        ],
+        "triggers": {
+            "file_patterns": [
+                "policy",
+                "auth",
+                "secret"
+            ],
+            "dependency_match": [
+                "auth0",
+                "keycloak",
+                "vault"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".yaml",
+                ".yml",
+                ".json",
+                ".tf"
+            ]
+        },
+        "expert_prompt_ref": "General Security & Infrastructure Hardening Expert. Audit for loose IAM policies, lack of TLS, and insecure VPC/Network configurations.",
+        "tools": [
+            "read_file",
+            "search_codebase",
+            "find_infrastructure_signals"
+        ]
     }
 ]

@@ -2,7 +2,7 @@ import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage } from "@langchain/core/messages";
 import { z } from "zod";
-import { AgentState, getModelForTask } from "./config";
+import { AgentState, getModelForTask, getLessons } from "./config";
 import { createLLM } from "./models";
 import { createFileSystemTools } from "./tools";
 import { executeArchitectExpert } from "./experts/base";
@@ -73,7 +73,6 @@ export async function criticAgentNode(state: typeof AgentState.State) {
         temperature: 0.1
     }) as ChatGoogleGenerativeAI;
 
-    const { getLessons } = require("./config");
     const lessons = getLessons().slice(0, 5);
     const lessonPrompt = lessons.map((l: any) =>
         `Institutional Lesson: ${l.pattern}\nRationale: ${l.rationale}\nVerdict: ${l.human_verdict}`

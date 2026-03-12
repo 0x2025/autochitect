@@ -90,17 +90,17 @@ To move beyond static analysis, Autochitect implements a continuous reinforcemen
 ### 5.3 The Feedback Flywheel
 
 ```mermaid
-graph TD
-    A[Expert Agent Output] --> B[Human Review]
-    B -->|CORRECT| C[Store as Positive Example]
-    B -->|INCORRECT| D[Store as Negative Constraint]
-    C --> E[Vector Store]
+flowchart TD
+    A["Expert Agent Output"] --> B["Human Review"]
+    B -->|CORRECT| C["Store as Positive Example"]
+    B -->|INCORRECT| D["Store as Negative Constraint"]
+    C --> E["Vector Store"]
     D --> E
-    E --> F[RAG Retrieval]
-    F --> G[Pre-Execution Rubric Injection]
+    E --> F["RAG Retrieval"]
+    F --> G["Pre-Execution Rubric Injection"]
     G --> A
-    E --> H[Periodic Distillation]
-    H --> I[Project-Specific Heuristics]
+    E --> H["Periodic Distillation"]
+    H --> I["Project-Specific Heuristics"]
     I --> G
 ```
 
@@ -345,12 +345,12 @@ sequenceDiagram
     participant A as Agent
     participant J as LLM Judge
 
-    T->>V: Inject Mock Lesson (e.g. "Don't flag CSRF in Repo X")
-    T->>A: Run Scan on Repo X
+    T->>V: Inject Mock Lesson
+    T->>A: Run Scan on Repo
     A->>V: Query Lessons
     V-->>A: Return Mock Lesson
     A->>T: Output Finding Report
-    T->>J: Ask: "Did the agent obey the Mock Lesson?"
+    T->>J: Ask - Did agent obey lesson?
     J-->>T: Pass/Fail
 ```
 

@@ -62,11 +62,14 @@ export interface Lesson {
     human_verdict: 'CORRECT' | 'INCORRECT';
 }
 
-const REGISTRY_PATH = path.join(process.cwd(), 'registry.json');
-const LESSONS_PATH = path.join(process.cwd(), 'moat', 'lessons_learned.json');
+const REGISTRY_PATH = path.resolve(__dirname, '..', 'registry.json');
+const LESSONS_PATH = path.resolve(__dirname, '..', 'moat', 'lessons_learned.json');
 
 export function getRegistry(): ExpertBlueprint[] {
-    if (!fs.existsSync(REGISTRY_PATH)) return [];
+    if (!fs.existsSync(REGISTRY_PATH)) {
+        console.error(`[Config] ERROR: Registry not found at ${REGISTRY_PATH}`);
+        return [];
+    }
     return JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf-8'));
 }
 
