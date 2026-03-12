@@ -18,10 +18,12 @@ const storage = new Storage();
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || '';
 const MANIFEST_FILE = 'manifest.json';
 
-// Dynamic CLI path: /app/cli/dist/cli.js in Docker, otherwise local workspace path
+// Dynamic CLI path resolution
 const DEFAULT_CLI_PATH = '/app/cli/dist/cli.js';
 const LOCAL_CLI_PATH = path.resolve(process.cwd(), '../poc_agent_runner/dist/cli.js');
-const CLI_PATH = fs.existsSync(DEFAULT_CLI_PATH) ? DEFAULT_CLI_PATH : LOCAL_CLI_PATH;
+
+// Prioritize environment variable, then production fallback, then local development
+const CLI_PATH = process.env.CLI_PATH || (fs.existsSync(DEFAULT_CLI_PATH) ? DEFAULT_CLI_PATH : LOCAL_CLI_PATH);
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
 const LOCAL_OUTPUT_DIR = path.join(DATA_DIR, 'reports');

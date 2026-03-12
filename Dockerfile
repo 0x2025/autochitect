@@ -7,7 +7,7 @@ RUN pnpm install
 COPY poc_agent_runner/src ./src
 COPY poc_agent_runner/registry.json poc_agent_runner/tsconfig.json ./
 COPY poc_agent_runner/moat ./moat
-RUN pnpm run build:docker
+RUN pnpm run build:cli
 
 # Stage 2: Build Website
 FROM node:20-slim AS web-builder
