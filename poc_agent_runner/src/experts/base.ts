@@ -44,7 +44,8 @@ const ReportSchema = z.object({
         recommendation: z.string().describe("Actionable advice to resolve the issue."),
         evidenceCode: z.string().optional().describe("Snippet of code where the issue was found, including 4 lines above and 1 line below for context.")
     })).describe("List of specific architectural and security findings."),
-    discoveredLanguages: z.array(z.string()).optional().describe("Languages detected in the codebase.")
+    discoveredLanguages: z.array(z.string()).optional().describe("Languages detected in the codebase."),
+    repoUrl: z.string().optional().describe("Source repository URL used to generate this report.")
 });
 
 /**

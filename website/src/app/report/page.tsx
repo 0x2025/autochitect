@@ -29,6 +29,7 @@ interface StructuredReport {
     };
     findings: Finding[];
     discoveredLanguages?: string[];
+    repoUrl?: string;
 }
 
 export default function ReportPage() {
@@ -349,11 +350,23 @@ function ReportContent() {
                                             </div>
 
                                                 <div className="flex flex-wrap gap-2">
-                                                    {finding.files.map(f => (
-                                                        <span key={f} className="inline-flex items-center font-mono text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded border border-gray-100">
-                                                            {f.split('/').pop()}
-                                                        </span>
-                                                    ))}
+                                                    {finding.files.map(f => {
+                                                        const repoBase = report.repoUrl?.replace(/\/+$/, '');
+                                                        const githubUrl = repoBase ? `${repoBase}/blob/main/${f}` : null;
+                                                        const badge = (
+                                                            <span className="inline-flex items-center font-mono text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                                                                {f}
+                                                            </span>
+                                                        );
+                                                        return githubUrl ? (
+                                                            <a key={f} href={githubUrl} target="_blank" rel="noopener noreferrer"
+                                                               className="hover:opacity-70 transition-opacity">
+                                                                {badge}
+                                                            </a>
+                                                        ) : (
+                                                            <span key={f}>{badge}</span>
+                                                        );
+                                                    })}
                                                 </div>
 
                                             {finding.evidenceCode && (

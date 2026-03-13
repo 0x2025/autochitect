@@ -78,7 +78,8 @@ export async function runAgent(options: {
                 const outPath = options.outputPath && dir === path.dirname(options.outputPath) ? options.outputPath : path.join(dir, "report.json");
                 try {
                     console.log(`Attempting to save report to: ${outPath}...`);
-                    fs.writeFileSync(outPath, JSON.stringify(result.structuredAnalysisResult, null, 2));
+                    const reportWithMeta = { ...result.structuredAnalysisResult, repoUrl: options.repoUrl };
+                    fs.writeFileSync(outPath, JSON.stringify(reportWithMeta, null, 2));
                     console.log(`SUCCESS: Structured report saved to ${outPath}`);
                     savedPath = outPath;
                     break;
