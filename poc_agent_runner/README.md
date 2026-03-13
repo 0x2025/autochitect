@@ -45,10 +45,10 @@ Autochitect will automatically detect your provider based on available environme
 
 | Provider | Environment Variable | Default Model (High) |
 |----------|----------------------|----------------------|
-| **Gemini (API)** | `GOOGLE_API_KEY` | `gemini-1.5-pro` |
+| **Gemini (API)** | `GOOGLE_API_KEY` | `gemini-3.1-pro` |
 | **Claude** | `ANTHROPIC_API_KEY` | `claude-3-5-sonnet` |
 | **OpenAI** | `OPENAI_API_KEY` | `gpt-4o` |
-| **Vertex AI** | `GOOGLE_APPLICATION_CREDENTIALS` | `gemini-1.5-pro` |
+| **Vertex AI** | `GOOGLE_APPLICATION_CREDENTIALS` | `gemini-3.1-pro` |
 | **Ollama** | `OLLAMA_HOST` (optional) | `llama3.1` |
 
 ## Output

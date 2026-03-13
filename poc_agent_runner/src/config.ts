@@ -129,5 +129,5 @@ export function saveLesson(lesson: Lesson, repoUrl?: string) {
 }
 
 export function getModelForTask(complexity: 'LOW' | 'HIGH'): string {
-    return "gemini-2.0-flash"; // Standard POC model for Phase 0 reliability
+    return complexity === 'HIGH' ? "gemini-3.1-pro" : "gemini-2.5-flash";
 }
