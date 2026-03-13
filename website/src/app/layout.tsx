@@ -15,6 +15,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Autochitect | Architectural Agent",
   description: "Autonomous Architectural Analysis and Report Validation",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico" },
+    ],
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({

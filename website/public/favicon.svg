@@ -1,0 +1,11 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    :root { --skeleton-color: black; }
+    @media (prefers-color-scheme: dark) {
+      :root { --skeleton-color: white; }
+    }
+    .skeleton { stroke: var(--skeleton-color); }
+  </style>
+  <path d="M16 6 L6 26 M16 6 L26 26 M10 19 L22 19" class="skeleton" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="24" cy="8" r="3" fill="#10b981" />
+</svg>
