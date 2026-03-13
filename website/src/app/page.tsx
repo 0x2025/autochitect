@@ -172,15 +172,6 @@ export default function Home() {
         )}
       </section>
 
-      {/* Info Footer */}
-      <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 font-mono text-[11px] text-gray-500 opacity-80 leading-relaxed">
-        <p>
-          autochitect --version 1.4.2
-        </p>
-        <p className="mt-1">
-          Ready for autonomous architecture discovery and pattern recognition.
-        </p>
-      </div>
     </div>
   );
 }
