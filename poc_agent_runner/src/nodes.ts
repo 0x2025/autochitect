@@ -43,12 +43,16 @@ Return a report structured by C4 Levels (Context and Containers). List specific 
         languages: z.array(z.string()).describe("Primary programming languages or frameworks found (lowercase).")
     });
 
-    const extractionLlm = llm.withStructuredOutput(langExtractionSchema);
-    const extracted = await extractionLlm.invoke(`Based on this discovery report, extract the primary languages:\n${finalAnswer}`);
+    const extractionLlm = llm.withStructuredOutput(langExtractionSchema, { includeRaw: true });
+    const extracted_raw = await extractionLlm.invoke(`Based on this discovery report, extract the primary languages:\n${finalAnswer}`);
+    const extracted = extracted_raw.parsed;
+
+    const usage = extracted_raw.raw.usage_metadata || { input_tokens: 0, output_tokens: 0, total_tokens: 0 };
 
     return {
         discoveryResult: finalAnswer,
-        discoveredLanguages: extracted.languages || []
+        discoveredLanguages: extracted.languages || [],
+        usage
     };
 }
 
@@ -57,9 +61,9 @@ Return a report structured by C4 Levels (Context and Containers). List specific 
 // ==========================================
 export async function expertAgentNode(state: typeof AgentState.State) {
     const expertId = state.activeExpertId || "GENERAL_EXPERT";
-    const report = await executeArchitectExpert(expertId, state, "SPECIALIST");
+    const { report, usage } = await executeArchitectExpert(expertId, state, "SPECIALIST");
     const reportText = typeof report === 'string' ? report : JSON.stringify(report, null, 2);
-    return { expertReports: [reportText] };
+    return { expertReports: [reportText], usage };
 }
 
 // ==========================================
@@ -99,23 +103,25 @@ If any expert missed a critical structural flaw or an NFR requirement, flag it h
 IDENTIFY CRITICALITY: Any finding related to security or fundamental NFR failure (async/await violations) MUST be marked as CRITICAL.
 Otherwise, approve the findings for final synthesis.`;
 
-    const result = await llm.stream([new HumanMessage(prompt)]);
-    let criticReport = "";
-    for await (const chunk of result) {
-        criticReport += extractMessageContent(chunk);
-    }
+    const result = await llm.invoke([new HumanMessage(prompt)]);
+    const criticReport = extractMessageContent(result);
+    const usage = (result as any).usage_metadata || { input_tokens: 0, output_tokens: 0, total_tokens: 0 };
 
-    return { expertReports: [...state.expertReports, `\n[AUDITOR VERDICT]:\n${criticReport}`] };
+    return { 
+        expertReports: [...state.expertReports, `\n[AUDITOR VERDICT]:\n${criticReport}`],
+        usage
+    };
 }
 
 // ==========================================
 // 4. Synthesizer Node
 // ==========================================
 export async function synthesizeNode(state: typeof AgentState.State) {
-    const structuredReport = await executeArchitectExpert("LEAD_ARCHITECT_EXPERT", state, "LEAD");
+    const { usage, ...structuredReport } = await executeArchitectExpert("LEAD_ARCHITECT_EXPERT", state, "LEAD");
 
     return {
         analysisResult: JSON.stringify(structuredReport, null, 2),
-        structuredAnalysisResult: structuredReport
+        structuredAnalysisResult: structuredReport,
+        usage
     };
 }

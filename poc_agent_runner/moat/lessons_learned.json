@@ -71,8 +71,8 @@
       "mermaid"
     ],
     "violation_type": "SYNTAX_ERROR",
-    "pattern": "Unquoted Mermaid labels with spaces",
-    "rationale": "Labels containing spaces in `graph TD/LR` must be double-quoted to be valid Mermaid syntax. Example: `id(\"Label with Spaces\")`.",
+    "pattern": "Invalid Mermaid syntax (Unquoted labels/subgraphs, spaces in IDs)",
+    "rationale": "Mermaid parser fails on unquoted labels with spaces in brackets/parentheses, spaces in subgraph titles, or spaces in node/subgraph IDs. Always use `id(\"Label\")`, `subgraph ID [\"Title\"]`, and space-free IDs.",
     "human_verdict": "CORRECT"
   }
 ]

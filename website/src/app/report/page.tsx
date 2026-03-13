@@ -16,6 +16,7 @@ interface Finding {
     recommendation: string;
     valid?: boolean;
     rationale?: string;
+    evidenceCode?: string;
 }
 
 interface StructuredReport {
@@ -347,10 +348,6 @@ function ReportContent() {
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-3">
-                                                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                                    Evidence
-                                                </h4>
                                                 <div className="flex flex-wrap gap-2">
                                                     {finding.files.map(f => (
                                                         <span key={f} className="inline-flex items-center font-mono text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded border border-gray-100">
@@ -358,7 +355,22 @@ function ReportContent() {
                                                         </span>
                                                     ))}
                                                 </div>
-                                            </div>
+
+                                            {finding.evidenceCode && (
+                                                <div className="space-y-3">
+                                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                                        Code Evidence
+                                                    </h4>
+                                                    <div className="relative group/code">
+                                                        <pre className="text-[12px] font-mono leading-relaxed bg-[#0d1117] text-[#e6edf3] p-5 rounded-2xl border border-gray-100 overflow-x-auto">
+                                                            <code>{finding.evidenceCode}</code>
+                                                        </pre>
+                                                        <div className="absolute top-4 right-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-0 group-hover/code:opacity-100 transition-opacity">
+                                                            Snippet
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 

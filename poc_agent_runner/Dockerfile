@@ -47,9 +47,9 @@ COPY --from=builder /app/registry.json ./
 COPY --from=builder /app/moat ./moat/
 
 # Create workspace and output directories with global write permissions for volume safety
-RUN mkdir -p /tmp/autochitect /app/output && \
-    chmod -R 777 /tmp/autochitect /app/output && \
-    chown -R node:node /tmp/autochitect /app/output
+RUN mkdir -p /tmp/autochitect /app/output /app/moat && \
+    chmod -R 777 /tmp/autochitect /app/output /app/moat && \
+    chown -R node:node /tmp/autochitect /app/output /app/moat
 
 USER node
 

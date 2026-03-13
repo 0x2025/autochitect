@@ -177,26 +177,127 @@ export function createFileSystemTools(localPath: string): StructuredToolInterfac
     );
 
     const findInfrastructureSignalsTool = tool(
-        async (): Promise<string> => {
-            const signals = [
-                "docker-compose.yml", "Dockerfile", "Terraform", ".env", "appsettings.json",
-                "package.json", "pom.xml", ".csproj", "go.mod", "requirements.txt"
-            ];
-            let found: string[] = [];
-            for (const signal of signals) {
-                try {
-                    const output = execSync(`find . -maxdepth 3 -name "*${signal}*"`, { cwd: localPath, encoding: "utf-8" }).trim();
-                    if (output) found.push(...output.split('\n'));
-                } catch (e) { }
+        async ({ query, type }: { query?: string; type?: "files" | "content" | "both" }): Promise<string> => {
+            try {
+                const signals: string[] = [];
+                const searchType = type || "both";
+
+                // 1. Dynamic File Search (if query or "files"/"both" is specified)
+                if (searchType === "files" || searchType === "both") {
+                    const filePattern = query || "Dockerfile,docker-compose,terraform,k8s,package.json,pom.xml,appsettings,web.config,.env";
+                    const patterns = filePattern.split(',').map(p => p.trim());
+                    
+                    for (const pattern of patterns) {
+                        try {
+                            // Find files matching the pattern (max depth 3 for performance)
+                            const output = execSync(`find . -maxdepth 3 -name "*${pattern}*"`, { cwd: localPath, encoding: "utf-8" }).trim();
+                            if (output) {
+                                signals.push(`[Files Found] Pattern '${pattern}':\n${output.split('\n').slice(0, 5).join('\n')}`);
+                            }
+                        } catch (e) { }
+                    }
+                }
+
+                // 2. Dynamic Content Search (if query or "content"/"both" is specified)
+                if (searchType === "content" || searchType === "both") {
+                    const contentQuery = query || "aws,azure,google,gcp,stripe,redis,mongodb,postgres,sql,amqp,kafka";
+                    const patterns = contentQuery.split(',').map(p => p.trim());
+                    
+                    // Focus grep on common config files to avoid noise
+                    const configFiles = ["appsettings.json", "web.config", ".env", "package.json", "pom.xml", "go.mod", "requirements.txt"];
+                    const existingConfigs = configFiles.filter(f => fs.existsSync(path.join(localPath, f)));
+
+                    for (const pattern of patterns) {
+                        try {
+                            const cmd = `grep -li "${pattern}" ${existingConfigs.join(' ')}`;
+                            if (existingConfigs.length > 0) {
+                                const output = execSync(cmd, { cwd: localPath, encoding: "utf-8" }).trim();
+                                if (output) {
+                                    signals.push(`[Content Match] '${pattern}' found in:\n${output}`);
+                                }
+                            }
+                        } catch (e) { }
+                    }
+                }
+
+                if (signals.length === 0) return `No infrastructure signals found for query: ${query || 'default'}`;
+                return signals.join("\n\n");
+            } catch (err: any) {
+                return `Infrastructure Scan Error: ${err.message}`;
             }
-            return found.length > 0 ? found.join("\n") : "No common infrastructure signals found in root.";
         },
         {
             name: "find_infrastructure_signals",
-            description: "Scout tool (Level 1/2). Finds Docker, IaC, and Project Manifests to infer C4 boundaries.",
-            schema: z.object({})
+            description: "Autonomously scans the codebase for infrastructure markers. Can search for file patterns or content patterns within configuration files. Leave query empty for default broad scan.",
+            schema: z.object({
+                query: z.string().optional().describe("Comma-separated list of file/content patterns to hunt for (e.g. 'aws,s3,bucket')."),
+                type: z.enum(["files", "content", "both"]).optional().describe("Whether to search for filenames, file content, or both.")
+            })
         }
     );
 
-    return [readFileTool, listDirTool, searchCodebaseTool, getRepositoryMapTool, getComponentDetailsAstTool, findInfrastructureSignalsTool];
+    const validateMermaidTool = tool(
+        async ({ diagram }: { diagram: string }): Promise<string> => {
+            const validatorScript = `
+import { JSDOM } from 'jsdom';
+
+// Setup Mock DOM
+const dom = new JSDOM('<!DOCTYPE html><html><body><div id="mermaid"></div></body></html>', {
+  url: 'http://localhost',
+});
+
+// Polyfill globals for Mermaid
+Object.defineProperties(global, {
+  window: { value: dom.window, writable: true, configurable: true },
+  document: { value: dom.window.document, writable: true, configurable: true },
+  navigator: { value: dom.window.navigator, writable: true, configurable: true },
+});
+
+// Import mermaid AFTER mocking globals
+import mermaid from 'mermaid';
+
+// Mermaid initialization
+mermaid.initialize({
+  startOnLoad: false,
+});
+
+async function run() {
+  try {
+    const input = fs.readFileSync(0, 'utf-8');
+    await mermaid.parse(input, { suppressErrors: false });
+    process.stdout.write('OK');
+    process.exit(0);
+  } catch (err) {
+    process.stderr.write(err.message || String(err));
+    process.exit(1);
+  }
+}
+import fs from 'fs';
+run();
+`;
+            const scriptPath = path.join("/tmp", `mermaid-val-${Math.random().toString(36).substr(2, 9)}.mjs`);
+            fs.writeFileSync(scriptPath, validatorScript);
+
+            try {
+                execSync(`node ${scriptPath}`, {
+                    input: diagram,
+                    stdio: ['pipe', 'pipe', 'pipe'],
+                    cwd: localPath // Run in localPath to ensure node_modules resolution if needed, though we use global-ish imports
+                });
+                return "OK: Mermaid syntax is valid.";
+            } catch (err: any) {
+                const errorOutput = err.stderr?.toString() || err.message;
+                return `ERROR: Mermaid syntax is invalid. ${errorOutput}`;
+            } finally {
+                if (fs.existsSync(scriptPath)) fs.unlinkSync(scriptPath);
+            }
+        },
+        {
+            name: "validate_mermaid",
+            description: "Validate Mermaid diagram syntax using the real Mermaid parser. Returns 'OK' or an error message.",
+            schema: z.object({ diagram: z.string().describe("The Mermaid diagram string (without ```mermaid wrappers)") })
+        }
+    );
+
+    return [readFileTool, listDirTool, searchCodebaseTool, getRepositoryMapTool, getComponentDetailsAstTool, findInfrastructureSignalsTool, validateMermaidTool];
 }

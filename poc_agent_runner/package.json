@@ -19,10 +19,9 @@
     "test:regression": "NODE_OPTIONS='--max-old-space-size=6144' ts-node --transpile-only tests/regression_eval.ts",
     "test:grounding": "ts-node src/index.ts --test-grounding",
     "validate:registry": "ts-node scripts/validate_registry.ts",
-    "build": "tsc",
-    "build:cli": "esbuild src/cli.ts src/index.ts --bundle --platform=node --target=node20 --outdir=dist --packages=external",
-    "build:docker": "esbuild src/index.ts --bundle --platform=node --target=node20 --outdir=dist --packages=external",
-    "prepublishOnly": "npm run build:cli"
+    "build": "esbuild src/cli.ts src/index.ts --bundle --platform=node --target=node20 --outdir=dist --packages=external && mkdir -p dist/prompts && cp src/experts/prompts/*.md dist/prompts/",
+    "build:docker": "esbuild src/index.ts --bundle --platform=node --target=node20 --outdir=dist --packages=external && mkdir -p dist/prompts && cp src/experts/prompts/*.md dist/prompts/",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.19.0",
@@ -35,6 +34,8 @@
     "@langchain/openai": "^1.2.12",
     "commander": "^14.0.3",
     "dotenv": "^16.6.1",
+    "jsdom": "^28.1.0",
+    "mermaid": "^11.13.0",
     "simple-git": "^3.32.3",
     "tree-sitter": "^0.21.0",
     "tree-sitter-c-sharp": "^0.23.1",

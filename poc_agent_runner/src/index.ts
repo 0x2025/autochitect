@@ -5,6 +5,7 @@ import { Storage } from '@google-cloud/storage';
 import { createGraph } from "./graph";
 import { setMaxListeners } from "events";
 import { syncFromGcs, isCloudMode } from "./gcs";
+import { formatUsageSummary } from "./usage";
 
 dotenv.config();
 // Prevent MaxListenersExceededWarning during complex agent loops
@@ -62,6 +63,10 @@ export async function runAgent(options: {
     console.log("=========================================\n");
     console.log(result.analysisResult);
     console.log("\n=========================================");
+
+    // Resource Usage Benchmarking
+    console.log(formatUsageSummary(result.usage, result.model));
+    console.log("=========================================\n");
 
     if (result.structuredAnalysisResult) {
         const outDirs = options.outputPath ? [path.dirname(options.outputPath), "/app/output", process.cwd()] : ["/app/output", process.cwd()];

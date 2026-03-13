@@ -4,9 +4,24 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import * as path from "path";
 import * as fs from "fs";
 import { BaseMessage } from "@langchain/core/messages";
-import { AgentState, getRegistry, getLessons, getModelForTask, Lesson } from "../config";
+import { AgentState, getRegistry, getLessons, getModelForTask, Lesson, TokenUsage } from "../config";
 import { createFileSystemTools } from "../tools";
 import { z } from "zod";
+
+/**
+ * Loads a prompt from a Markdown file and replaces placeholders.
+ */
+function loadPrompt(promptName: string, variables: Record<string, string>): string {
+    const promptPath = path.join(__dirname, "prompts", `${promptName}.md`);
+    if (!fs.existsSync(promptPath)) {
+        throw new Error(`Prompt file not found: ${promptPath}`);
+    }
+    let content = fs.readFileSync(promptPath, "utf-8");
+    for (const [key, value] of Object.entries(variables)) {
+        content = content.replace(new RegExp(`{{${key}}}`, "g"), value);
+    }
+    return content;
+}
 
 /**
  * Schema for the synthesized Architectural Report.
@@ -26,7 +41,8 @@ const ReportSchema = z.object({
         description: z.string().describe("Detailed explanation of the observation."),
         impact: z.string().describe("Potential consequences for the system."),
         files: z.array(z.string()).describe("List of relative file paths associated with this finding."),
-        recommendation: z.string().describe("Actionable advice to resolve the issue.")
+        recommendation: z.string().describe("Actionable advice to resolve the issue."),
+        evidenceCode: z.string().optional().describe("Snippet of code where the issue was found, including 4 lines above and 1 line below for context.")
     })).describe("List of specific architectural and security findings."),
     discoveredLanguages: z.array(z.string()).optional().describe("Languages detected in the codebase.")
 });
@@ -39,7 +55,7 @@ export async function executeArchitectExpert(
     expertId: string,
     state: typeof AgentState.State,
     type: "SPECIALIST" | "LEAD"
-): Promise<string | any> {
+): Promise<any> {
     const registry = getRegistry();
     const blueprint = registry.find(b => b.expert_id === expertId) || {
         expert_id: expertId,
@@ -53,8 +69,10 @@ export async function executeArchitectExpert(
         model: state.model
     });
 
-    const lessons = await retrieveRelevantLessons(state.discoveryResult, state);
-    const lessonPrompt = lessons.map(l =>
+    console.log(`[Knowledge Moat] Semantically matching institutional lessons...`);
+
+    const { lessons: relevantLessons, usage: lessonUsage } = await retrieveRelevantLessons(state.discoveryResult, state);
+    const lessonPrompt = relevantLessons.map(l =>
         `Institutional Lesson: ${l.pattern}\nRationale: ${l.rationale}\nVerdict: ${l.human_verdict}`
     ).join("\n\n");
 
@@ -62,65 +80,31 @@ export async function executeArchitectExpert(
 
     if (type === "LEAD") {
         const combinedReports = state.expertReports.join("\n\n");
-        basePrompt += `Your goal is to synthesize the final C4 Architectural Report by aggregating findings from all specialist experts. 
-You are an [Autonomous Evaluator]. If expert findings are contradictory or lack evidence for critical NFRs, use your tools to perform a final verification of the codebase.
+        basePrompt += loadPrompt("lead_architect", {
+            expertReports: combinedReports,
+            discoveryResult: state.discoveryResult,
+            lessonPrompt: lessonPrompt || "No specific historical anti-patterns found."
+        });
 
-====== EXPERT REPORTS ======
-${combinedReports}
-============================
-
-====== DISCOVERY CONTEXT ======
-${state.discoveryResult}
-==============================
-
-====== ARCHITECTURAL POLICIES (MOAT) ======
-${lessonPrompt || "No specific historical anti-patterns found."}
-=========================================
-
-AUDIT MANDATE:
-1. FORMAT: Use the [C4 Model Hierarchy] (L1 System Context, L2 Containers, L3 Components, L4 Code & NFR).
-2. EXPERT FIDELITY: You MUST treat the Specialist Expert Reports as the primary source of truth. Do NOT omit any expert's findings unless your own tool-based verification definitively proves them false.
-3. MOAT ENFORCEMENT: If any expert report or discovery context indicates a violation of an "ARCHITECTURAL POLICY (MOAT)", you MUST include it as a finding.
-    **CRITICAL**: If a MOAT policy is marked as 'Verdict: INCORRECT', this means the pattern has been REJECTED by a human. You MUST IGNORE these patterns and NEVER report them as findings.
-4. VERBATIM POLICIES: When an expert finding matches a VALID MOAT policy (Verdict: CORRECT), you MUST use the exact policy pattern name (e.g., "secret management in appsettings.json") in the finding's title or description. Apply the corresponding 'violation_type' as the criticality (SECURITY_RISK -> CRITICAL/HIGH).
-5. NO SUMMARIZATION LOSS: You are prohibited from summarizing away specific vulnerabilities. They MUST appear in your final 'findings' array with exact file paths and evidence.
-6. EXHAUSTIVE COVERAGE: Ensure all critical security and NFR findings from specialists are included.
-87. VISUAL architecture: You MUST look for Mermaid diagrams from the MERMAID_EXPERT. Ensure they follow standard Mermaid Flowchart syntax (graph TD/LR) with C4-style classes. NO 'C4Context/Container/Component' DSL syntax.
-88. Provide a final overall \"Architectural Health\" verdict.
-89. AUTO-LAYOUT: Ensure diagrams are structured for optimal auto-layout by keeping relationships clear and definitions organized. Use subgraphs to denote boundaries.`;
-
-        const structuredLlm = llm.withStructuredOutput(ReportSchema);
+        const structuredLlm = llm.withStructuredOutput(ReportSchema, { includeRaw: true });
         console.log(`\n[Node: ${expertId}] Synthesizing Final Structured Report...`);
 
+        const result = await structuredLlm.invoke(basePrompt);
+        const usage = (result.raw as any).usage_metadata || { input_tokens: 0, output_tokens: 0, total_tokens: 0 };
+
         return {
-            ...(await structuredLlm.invoke(basePrompt)),
-            discoveredLanguages: state.discoveredLanguages
+            ...result.parsed,
+            discoveredLanguages: state.discoveredLanguages,
+            usage
         };
     }
 
     const architectAgent = createReactAgent({ llm, tools });
 
-    basePrompt += `Your goal is to perform a [C4 Level 3 & 4] Deep-Dive on specific Containers or Components identified in the Discovery Report.
-
-====== DISCOVERY CONTEXT ======
-            ${state.discoveryResult}
-==============================
-
-====== ARCHITECTURAL POLICIES (MOAT) ======
-${lessonPrompt || "No specific historical anti-patterns found."}
-=========================================
-
-AUDIT MANDATE:
-1. [L3 - Components]: Use 'get_component_details_ast' to map the internal architectural blocks (Namespaces, Modules) of the assigned path.
-2. [L4 - Code & NFR]: Zoom into 2-3 critical files. Analyze the Relationship Triad (Methods, Attributes, Dependencies).
-3. MOAT VERIFICATION: You MUST explicitly check for the "ARCHITECTURAL POLICIES (MOAT)" patterns listed above. 
-    **IMPORTANT**: If a policy is marked as 'Verdict: INCORRECT', it has been rejected by a human auditor. You MUST ensure your findings DO NOT trigger on these specific rejected patterns. Use them as "Negative Examples" of what NOT to report.
-    If you find a match for a VALID policy (Verdict: CORRECT), report it with the exact pattern name and file evidence.
-4. NON-FUNCTIONAL FOCUS: Evaluate how the code handles Performance, Scalability, and Concurrency.
-5. PATH RESILIENCY: If a path is not found, use 'search_codebase' or 'get_repository_map' to locate it.
-6. Cite file paths and provide evidence-based verdicts.
-
-Audit for: Modular Integrity, Decoupling, SOLID, and NFR execution.`;
+    basePrompt += loadPrompt("specialist_architect", {
+        discoveryResult: state.discoveryResult,
+        lessonPrompt: lessonPrompt || "No specific historical anti-patterns found."
+    });
 
     const systemInstruction = new SystemMessage(`You are an elite architectural specialist. Your responsibility is to ensure the output is accurate, grounded in actual code, and follows the C4 hierarchy.`);
 
@@ -129,18 +113,22 @@ Audit for: Modular Integrity, Decoupling, SOLID, and NFR execution.`;
         messages: [systemInstruction, new HumanMessage(basePrompt)]
     });
 
-    const message = runResult.messages[runResult.messages.length - 1];
+    const message = runResult.messages[runResult.messages.length - 1] as any;
     const output = extractMessageContent(message);
+    const usage = message.usage_metadata || { input_tokens: 0, output_tokens: 0, total_tokens: 0 };
 
     // Expert Grounding
     const extensions = blueprint.grounding?.extensions || [];
     const grounding = validateEvidence(output, state.localPath, extensions);
     if (!grounding.isValid) {
         console.log(`[Node: ${expertId}] Grounding failure detected: ${grounding.error}`);
-        return `[${expertId}] Audit aborted due to evidence hallucination: ${grounding.error}`;
+        return { 
+            report: `[${expertId}] Audit aborted due to evidence hallucination: ${grounding.error}`,
+            usage 
+        };
     }
 
-    return output;
+    return { report: output, usage };
 }
 
 /**
@@ -169,9 +157,9 @@ export function extractMessageContent(message: any): string {
     return String(content || "");
 }
 
-async function retrieveRelevantLessons(discoveryResult: string, state: typeof AgentState.State): Promise<Lesson[]> {
+async function retrieveRelevantLessons(discoveryResult: string, state: typeof AgentState.State): Promise<{ lessons: Lesson[], usage: TokenUsage }> {
     const filteredLessons = getLessons(state.repoUrl);
-    if (filteredLessons.length === 0) return [];
+    if (filteredLessons.length === 0) return { lessons: [], usage: { input_tokens: 0, output_tokens: 0, total_tokens: 0 } };
 
     const llm = createLLM("LOW", {
         provider: state.provider as any,
@@ -193,31 +181,28 @@ Languages Found: ${state.discoveredLanguages.join(", ")}
 ${discoveryResult}
 ========================================`;
 
-    const prompt = `You are an Architectural Historian and Policy Enforcer.
-Analyze the Discovery Report and select the most relevant "Lessons Learned" from the Moat that must be enforced during an in-depth audit of this codebase.
-
-${contextSummary}
-
-Rules:
-1. Select ALL lessons that are highly relevant to the detected technology (e.g., .NET, Docker, React) or architectural patterns (e.g., async, modularity, microservices).
-2. PRIORITIZE: Safety and Security lessons (e.g., secret management, untrusted sources) MUST be included if even a slight signal is present in the Discovery Report.
-3. INCLUDE REJECTIONS: You MUST include lessons even if they are marked 'Verdict: INCORRECT'. These serve as negative constraints to prevent the auditor from re-reporting rejected issues.
-4. LIMIT: Select up to 10 lessons. Do not include irrelevant lessons just to fill the quota.
-5. If no clear matches exist, return an empty list.
-6. Return only the 'pattern' strings for the selected lessons.
-`;
+    const prompt = loadPrompt("lesson_selection", {
+        contextSummary: contextSummary
+    });
 
     try {
-        const extractionLlm = llm.withStructuredOutput(lessonSelectionSchema);
+        const extractionLlm = llm.withStructuredOutput(lessonSelectionSchema, { includeRaw: true });
         const result = await extractionLlm.invoke(prompt);
+        const usage = (result.raw as any).usage_metadata || { input_tokens: 0, output_tokens: 0, total_tokens: 0 };
 
-        return filteredLessons.filter(l => result.selected_patterns.includes(l.pattern));
+        return {
+            lessons: filteredLessons.filter(l => result.parsed.selected_patterns.includes(l.pattern)),
+            usage
+        };
     } catch (e) {
         console.warn(`[Knowledge Moat] Semantic retrieval failed, falling back to keyword matching: ${e}`);
         // Fallback to simple keyword matching if LLM fails
-        return filteredLessons.filter(lesson =>
-            lesson.pattern.split(' ').some(word => discoveryResult.toLowerCase().includes(word.toLowerCase()))
-        ).slice(0, 3);
+        return {
+            lessons: filteredLessons.filter(lesson =>
+                lesson.pattern.split(' ').some(word => discoveryResult.toLowerCase().includes(word.toLowerCase()))
+            ).slice(0, 3),
+            usage: { input_tokens: 0, output_tokens: 0, total_tokens: 0 }
+        };
     }
 }
 

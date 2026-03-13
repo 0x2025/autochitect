@@ -1,3 +1,6 @@
+#!/bin/bash
+podman stop autochitect-local || true
+podman rm autochitect-local || true
 podman build -t autochitect-local .
 podman run -d \
   --name autochitect-local \

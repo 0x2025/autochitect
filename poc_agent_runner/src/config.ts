@@ -3,6 +3,15 @@ import * as path from 'path';
 import { Annotation } from "@langchain/langgraph";
 
 // ==========================================
+// 0. Shared Types
+// ==========================================
+export interface TokenUsage {
+    input_tokens: number;
+    output_tokens: number;
+    total_tokens: number;
+}
+
+// ==========================================
 // 1. Shared Graph State
 // ==========================================
 export const AgentState = Annotation.Root({
@@ -33,6 +42,15 @@ export const AgentState = Annotation.Root({
     // LLM Configuration
     provider: Annotation<string | undefined>(),
     model: Annotation<string | undefined>(),
+    // Benchmarking
+    usage: Annotation<TokenUsage>({
+        reducer: (curr, next) => ({
+            input_tokens: curr.input_tokens + (next.input_tokens || 0),
+            output_tokens: curr.output_tokens + (next.output_tokens || 0),
+            total_tokens: curr.total_tokens + (next.total_tokens || 0)
+        }),
+        default: () => ({ input_tokens: 0, output_tokens: 0, total_tokens: 0 })
+    })
 });
 
 export interface ExpertBlueprint {
