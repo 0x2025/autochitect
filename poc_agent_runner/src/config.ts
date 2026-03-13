@@ -129,5 +129,5 @@ export function saveLesson(lesson: Lesson, repoUrl?: string) {
 }
 
 export function getModelForTask(complexity: 'LOW' | 'HIGH'): string {
-    return complexity === 'HIGH' ? "gemini-3.1-pro" : "gemini-2.5-flash";
+    return complexity === 'HIGH' ? "gemini-3.1-pro-preview" : "gemini-2.5-flash";
 }

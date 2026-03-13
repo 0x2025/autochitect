@@ -49,7 +49,7 @@ export function createLLM(task: "HIGH" | "LOW", options: LLMOptions = {}): BaseC
     switch (provider) {
         case "google-genai":
             return new ChatGoogleGenerativeAI({
-                model: options.model || (task === "HIGH" ? "gemini-3.1-pro" : "gemini-2.5-flash"),
+                model: options.model || (task === "HIGH" ? "gemini-3.1-pro-preview" : "gemini-2.5-flash"),
                 temperature,
                 apiKey: options.apiKey || process.env.GOOGLE_API_KEY
             });
@@ -70,7 +70,7 @@ export function createLLM(task: "HIGH" | "LOW", options: LLMOptions = {}): BaseC
 
         case "google-vertexai":
             return new ChatVertexAI({
-                model: options.model || (task === "HIGH" ? "gemini-3.1-pro" : "gemini-2.5-flash"),
+                model: options.model || (task === "HIGH" ? "gemini-3.1-pro-preview" : "gemini-2.5-flash"),
                 temperature,
                 location: options.region || "us-central1"
             });
