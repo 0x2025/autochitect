@@ -74,7 +74,7 @@ export async function criticAgentNode(state: typeof AgentState.State) {
         temperature: 0.1
     }) as ChatGoogleGenerativeAI;
 
-    const lessons = getLessons().slice(0, 5);
+    const lessons = getLessons(state.repoUrl).slice(0, 5);
     const lessonPrompt = lessons.map((l: any) =>
         `Institutional Lesson: ${l.pattern}\nRationale: ${l.rationale}\nVerdict: ${l.human_verdict}`
     ).join("\n\n");

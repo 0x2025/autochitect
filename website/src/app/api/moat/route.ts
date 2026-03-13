@@ -1,18 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { Storage } from "@google-cloud/storage";
 
-// Path to the lessons learned in the CLI folder
-const CLI_MOAT_PATH = process.env.NODE_ENV === 'production'
-    ? '/app/cli/moat/lessons_learned.json'
-    : path.resolve(process.cwd(), "..", "poc_agent_runner", "moat", "lessons_learned.json");
+// Utility to match CLI's getRepoId
+const getRepoId = (url: string) => url.replace(/https?:\/\//, '').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+
+const CLI_MOAT_DIR = process.env.NODE_ENV === 'production'
+    ? '/app/cli/moat'
+    : path.resolve(process.cwd(), "..", "poc_agent_runner", "moat");
+
+const storage = new Storage();
+const BUCKET_NAME = process.env.GCS_BUCKET_NAME;
+const isCloudMode = !!BUCKET_NAME;
 
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { finding, tech_stack, is_valid } = body;
+        const { finding, tech_stack, is_valid, repo_url } = body;
 
-        console.log(`[Moat API] Attempting to save lesson to: ${CLI_MOAT_PATH}`);
+        const repoId = repo_url ? getRepoId(repo_url) : 'global';
+        const repoMoatPath = path.join(CLI_MOAT_DIR, `${repoId}.json`);
+
+        if (isCloudMode) {
+            console.log(`[Moat API] Mode: Cloud (GCS Sync Enabled)`);
+        } else {
+            console.log(`[Moat API] Mode: Local (Disk Only)`);
+        }
+
+        console.log(`[Moat API] Attempting to save lesson to: ${repoMoatPath}`);
 
         if (!finding) {
             return NextResponse.json({ error: "Finding data is required" }, { status: 400 });
@@ -20,13 +36,13 @@ export async function POST(req: NextRequest) {
 
         // 1. Read existing lessons
         let lessons = [];
-        if (fs.existsSync(CLI_MOAT_PATH)) {
-            const data = fs.readFileSync(CLI_MOAT_PATH, 'utf-8');
+        if (fs.existsSync(repoMoatPath)) {
+            const data = fs.readFileSync(repoMoatPath, 'utf-8');
             lessons = JSON.parse(data);
         } else {
-            console.log(`[Moat API] MOAT file not found, creating new one at ${CLI_MOAT_PATH}`);
+            console.log(`[Moat API] MOAT file not found, creating new one at ${repoMoatPath}`);
             // Ensure directory exists
-            fs.mkdirSync(path.dirname(CLI_MOAT_PATH), { recursive: true });
+            fs.mkdirSync(path.dirname(repoMoatPath), { recursive: true });
         }
 
         // 2. Create new lesson
@@ -40,7 +56,8 @@ export async function POST(req: NextRequest) {
             violation_type: finding.criticality === "CRITICAL" || finding.criticality === "HIGH" ? "SECURITY_RISK" : "PERFORMANCE_BOTTLENECK",
             pattern: finding.title,
             rationale: finding.description + "\n\nRecommendation: " + finding.recommendation,
-            human_verdict: is_valid ? "CORRECT" : "INCORRECT"
+            human_verdict: is_valid ? "CORRECT" : "INCORRECT",
+            // repo_url removed per user request (files are now repo-specific)
         };
 
         if (existingIdx !== -1) {
@@ -50,7 +67,21 @@ export async function POST(req: NextRequest) {
         }
 
         // 3. Save
-        fs.writeFileSync(CLI_MOAT_PATH, JSON.stringify(lessons, null, 2));
+        fs.writeFileSync(repoMoatPath, JSON.stringify(lessons, null, 2));
+
+        // 4. Sync to GCS
+        if (BUCKET_NAME) {
+            try {
+                const destination = `moat/${repoId}.json`;
+                console.log(`[Moat API] Syncing to gs://${BUCKET_NAME}/${destination}...`);
+                await storage.bucket(BUCKET_NAME).upload(repoMoatPath, {
+                    destination,
+                    contentType: 'application/json'
+                });
+            } catch (err) {
+                console.error("[Moat API] GCS Sync Failed:", err);
+            }
+        }
 
         return NextResponse.json({ success: true, lessonId: nextId, updated: existingIdx !== -1 });
     } catch (err) {

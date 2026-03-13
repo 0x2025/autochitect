@@ -4,6 +4,7 @@ import * as fs from "fs";
 import { Storage } from '@google-cloud/storage';
 import { createGraph } from "./graph";
 import { setMaxListeners } from "events";
+import { syncFromGcs, isCloudMode } from "./gcs";
 
 dotenv.config();
 // Prevent MaxListenersExceededWarning during complex agent loops
@@ -26,6 +27,9 @@ export async function runAgent(options: {
         throw new Error("Target Repository URL is required. Hint: Pass it as the first argument or set TARGET_REPO_URL.");
     }
 
+    // Initialize/Sync Knowledge Base from Cloud Storage
+    await syncFromGcs();
+
     const isTest = options.isTest || false;
     const app = createGraph(isTest);
 
@@ -45,6 +49,7 @@ export async function runAgent(options: {
     console.log(`Starting Autochitect Agent...`);
     console.log(`Build: 2026-03-11T07:46:14Z (v1.1.0)`);
     console.log(`Mode: ${isTest ? "LOCAL EVAL" : "REMOTE CLONE"}`);
+    console.log(`Storage: ${isCloudMode() ? "Cloud (GCS Enabled)" : "Disk Only"}`);
     console.log("=========================================\n");
 
     const result = await app.invoke(initialState, {
@@ -80,10 +85,10 @@ export async function runAgent(options: {
 
         if (!savedPath) {
             console.error("FATAL: Could not save structured report to ANY configured directory.");
-        } else if (process.env.GCS_BUCKET_NAME) {
+        } else if (isCloudMode()) {
             try {
                 const storage = new Storage();
-                const bucket = storage.bucket(process.env.GCS_BUCKET_NAME);
+                const bucket = storage.bucket(process.env.GCS_BUCKET_NAME!);
                 const repoId = options.repoUrl.replace(/https?:\/\//, '').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
                 
                 console.log(`[GCS] Uploading report from ${savedPath} to gs://${process.env.GCS_BUCKET_NAME}/${repoId}.json...`);

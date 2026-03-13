@@ -44,7 +44,7 @@ COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/registry.json ./
-COPY --from=builder /app/moat/lessons_learned.json ./moat/
+COPY --from=builder /app/moat ./moat/
 
 # Create workspace and output directories with global write permissions for volume safety
 RUN mkdir -p /tmp/autochitect /app/output && \

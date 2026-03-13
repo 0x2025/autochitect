@@ -60,10 +60,21 @@ export interface Lesson {
     pattern: string;
     rationale: string;
     human_verdict: 'CORRECT' | 'INCORRECT';
+    repo_url?: string;
 }
 
 const REGISTRY_PATH = path.resolve(__dirname, '..', 'registry.json');
-const LESSONS_PATH = path.resolve(__dirname, '..', 'moat', 'lessons_learned.json');
+const MOAT_DIR = path.resolve(__dirname, '..', 'moat');
+
+export function getRepoId(url: string): string {
+    return url.replace(/https?:\/\//, '').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+}
+
+function getMoatPath(repoUrl?: string): string {
+    if (!repoUrl) return path.join(MOAT_DIR, 'global.json');
+    const repoId = getRepoId(repoUrl);
+    return path.join(MOAT_DIR, `${repoId}.json`);
+}
 
 export function getRegistry(): ExpertBlueprint[] {
     if (!fs.existsSync(REGISTRY_PATH)) {
@@ -73,15 +84,48 @@ export function getRegistry(): ExpertBlueprint[] {
     return JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf-8'));
 }
 
-export function getLessons(): Lesson[] {
-    if (!fs.existsSync(LESSONS_PATH)) return [];
-    return JSON.parse(fs.readFileSync(LESSONS_PATH, 'utf-8'));
+export function getLessons(repoUrl?: string): Lesson[] {
+    const lessons: Lesson[] = [];
+    
+    // 1. Load global lessons
+    const globalPath = getMoatPath();
+    if (fs.existsSync(globalPath)) {
+        lessons.push(...JSON.parse(fs.readFileSync(globalPath, 'utf-8')));
+    }
+
+    // 2. Load repo-specific lessons
+    if (repoUrl) {
+        const repoPath = getMoatPath(repoUrl);
+        if (fs.existsSync(repoPath) && repoPath !== globalPath) {
+            lessons.push(...JSON.parse(fs.readFileSync(repoPath, 'utf-8')));
+        }
+    }
+
+    return lessons;
 }
 
-export function saveLesson(lesson: Lesson) {
-    const lessons = getLessons();
-    lessons.push(lesson);
-    fs.writeFileSync(LESSONS_PATH, JSON.stringify(lessons, null, 2));
+export function saveLesson(lesson: Lesson, repoUrl?: string) {
+    const repoPath = getMoatPath(repoUrl);
+    
+    // Ensure directory exists
+    if (!fs.existsSync(MOAT_DIR)) {
+        fs.mkdirSync(MOAT_DIR, { recursive: true });
+    }
+
+    const lessons: Lesson[] = [];
+    if (fs.existsSync(repoPath)) {
+        lessons.push(...JSON.parse(fs.readFileSync(repoPath, 'utf-8')));
+    }
+    
+    // Avoid duplicates by pattern
+    const existingIdx = lessons.findIndex(l => l.pattern === lesson.pattern);
+    if (existingIdx !== -1) {
+        lessons[existingIdx] = { ...lessons[existingIdx], ...lesson };
+    } else {
+        lessons.push(lesson);
+    }
+
+    fs.writeFileSync(repoPath, JSON.stringify(lessons, null, 2));
 }
 
 export function getModelForTask(complexity: 'LOW' | 'HIGH'): string {

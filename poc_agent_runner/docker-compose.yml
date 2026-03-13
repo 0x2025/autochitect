@@ -7,5 +7,5 @@ services:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
     volumes:
       - ./workspace:/tmp/autochitect
-      - ./moat/lessons_learned.json:/app/moat/lessons_learned.json
+      - ./moat:/app/moat
       - ./registry.json:/app/registry.json

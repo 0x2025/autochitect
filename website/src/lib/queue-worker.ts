@@ -99,6 +99,10 @@ class QueueWorker {
         this.processNext();
     }
 
+    private isLocal(): boolean {
+        return process.env.NODE_ENV !== 'production' || process.env.FORCE_LOCAL === 'true';
+    }
+
     private async checkTaskFinished(task: ScanTask): Promise<boolean> {
         if (this.useGcs) {
             try {
@@ -167,14 +171,18 @@ class QueueWorker {
     async enqueue(repoUrl: string): Promise<string> {
         const repoId = this.generateRepoId(repoUrl);
         
-        // Deduplication Logic
-        const existingTask = this.queue.find(t => t.repoId === repoId && t.status === 'COMPLETED');
-        if (existingTask) {
-            const ageInDays = (Date.now() - existingTask.timestamp) / (1000 * 60 * 60 * 24);
-            if (ageInDays < SCAN_REFRESH_THRESHOLD_DAYS) {
-                console.log(`[QueueWorker] Skipping duplicate scan for ${repoId} (age: ${ageInDays.toFixed(1)} days)`);
-                return repoId;
+        // Deduplication Logic (Skip if running in local mode)
+        if (!this.isLocal()) {
+            const existingTask = this.queue.find(t => t.repoId === repoId && t.status === 'COMPLETED');
+            if (existingTask) {
+                const ageInDays = (Date.now() - existingTask.timestamp) / (1000 * 60 * 60 * 24);
+                if (ageInDays < SCAN_REFRESH_THRESHOLD_DAYS) {
+                    console.log(`[QueueWorker] Skipping duplicate scan for ${repoId} (age: ${ageInDays.toFixed(1)} days)`);
+                    return repoId;
+                }
             }
+        } else {
+            console.log(`[QueueWorker] Local execution: bypassing duplication check for ${repoId}`);
         }
 
         this.queue = this.queue.filter(t => t.repoId !== repoId);
@@ -197,12 +205,20 @@ class QueueWorker {
     }
 
     private async processNext() {
-        if (!this.initialized || this.isProcessing) return;
+        if (!this.initialized) return;
+        
+        // Limit processing if not local
+        if (this.isProcessing && !this.isLocal()) return;
 
         const nextTask = this.queue.find(t => t.status === 'PENDING');
         if (!nextTask) return;
 
-        this.isProcessing = true;
+        if (this.isLocal()) {
+            // In local mode, we don't lock isProcessing so multiple tasks can run instantly
+            console.log(`[QueueWorker] Local execution: processing ${nextTask.repoId} instantly`);
+        } else {
+            this.isProcessing = true;
+        }
         nextTask.status = 'RUNNING';
         await this.saveManifest();
 
@@ -279,7 +295,8 @@ class QueueWorker {
                     GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
                     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
                     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-                    OLLAMA_HOST: process.env.OLLAMA_HOST
+                    OLLAMA_HOST: process.env.OLLAMA_HOST,
+                    GCS_BUCKET_NAME: process.env.GCS_BUCKET_NAME
                 },
                 cwd: process.cwd(),
                 stdio: 'inherit'

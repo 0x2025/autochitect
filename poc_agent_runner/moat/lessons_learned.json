@@ -64,5 +64,15 @@
     "pattern": "Missing Security Considerations - Authentication and Authorization",
     "rationale": "The application lacks authentication and authorization mechanisms. The `/chat/completions` endpoint is publicly accessible without any form of authentication, allowing anyone to send requests. This exposes the application to unauthorized access, data breaches, and denial-of-service attacks.\n\nRecommendation: Implement authentication and authorization mechanisms to control access to the `/chat/completions` endpoint. Consider using industry-standard protocols like OAuth 2.0 or JWT for authentication. Implement role-based access control (RBAC) to restrict access to sensitive resources based on user roles.",
     "human_verdict": "CORRECT"
+  },
+  {
+    "lesson_id": "L008",
+    "tech_stack": [
+      "mermaid"
+    ],
+    "violation_type": "SYNTAX_ERROR",
+    "pattern": "Unquoted Mermaid labels with spaces",
+    "rationale": "Labels containing spaces in `graph TD/LR` must be double-quoted to be valid Mermaid syntax. Example: `id(\"Label with Spaces\")`.",
+    "human_verdict": "CORRECT"
   }
 ]

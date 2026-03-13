@@ -13,7 +13,8 @@ podman run --rm -it \
   --name autochitect-run \
   -e GOOGLE_API_KEY \
   -e TARGET_REPO_URL \
-  -v ./moat/lessons_learned.json:/app/moat/lessons_learned.json:Z \
+  -e GCS_BUCKET_NAME \
+  -v ./moat:/app/cli/moat:Z \
   -v ./registry.json:/app/registry.json:Z \
   -v ./workspace:/tmp/autochitect:Z \
   sangcungoc/autochitect:latest
@@ -30,7 +31,7 @@ podman run --rm -it \
 | `sangcungoc/autochitect:latest` | The localized production image. |
 
 ### Volume Breakdown:
-1.  **`moat/lessons_learned.json`**: Mount this so the agent can read and *write* new architectural lessons back to your local machine.
+1.  **`moat`**: Mount this directory to `/app/cli/moat` so the agent can read and *write* repository-specific architectural lessons (stored as `[repo-id].json`) and global lessons (`global.json`) back to your local machine.
 2.  **`registry.json`**: Mount this if you want to test new Expert definitions without rebuilding the image.
 3.  **`workspace`**: Temporary space where the agent clones and analyzes the code.
 

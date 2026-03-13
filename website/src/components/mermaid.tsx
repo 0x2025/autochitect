@@ -7,7 +7,7 @@ mermaid.initialize({
     startOnLoad: false,
     theme: 'base',
     securityLevel: 'loose',
-    htmlLabels: true,
+    htmlLabels: false, // Fix duplication by using SVG text instead of HTML
     themeVariables: {
         primaryColor: '#ffffff',
         primaryTextColor: '#000000',
@@ -15,14 +15,23 @@ mermaid.initialize({
         lineColor: '#000000',
         secondaryColor: '#f4f4f4',
         tertiaryColor: '#ffffff',
+        // Ensure SVG text is crisp
+        fontSize: '12px',
+        fontFamily: 'Inter, system-ui, sans-serif'
     },
-    // Ensure diagrams scale to container
+    // Improve layout by giving engine more room
+    // Using 'as any' because some layout properties are supported at runtime but missing in type definitions
     c4: {
-        useMaxWidth: true
-    },
+        useMaxWidth: true,
+        rankSpacing: 100, // Increase vertical space
+        nodeSpacing: 80   // Increase horizontal space
+    } as any,
     flowchart: {
-        useMaxWidth: true
-    }
+        useMaxWidth: true,
+        rankSpacing: 80,
+        nodeSpacing: 60,
+        curve: 'basis' // Smoother lines often cross less jarringly
+    } as any
 });
 
 import { Card, Button } from './ui';
@@ -123,18 +132,19 @@ const Mermaid: React.FC<MermaidProps> = ({ chart }) => {
             </div>
 
             {isMaximized && (
-                <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
-                    <div className="w-full h-[95vh] max-w-[95vw]">
+                <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="w-full h-full max-w-[95vw] max-h-[95vh]">
                         <Card
                             title="Architectural Diagram - Maximized View"
                             className="h-full"
+                            headerAction={
+                                <Button onClick={() => setIsMaximized(false)} variant="secondary" className="px-3 py-1 text-xs">
+                                    Close Diagram
+                                </Button>
+                            }
                         >
-                            <div className="flex flex-col h-full uppercase tracking-widest font-bold text-[10px] text-gray-400">
-                                Maximized View
-                                <div className="flex-1 bg-white border border-gray-100 rounded-xl overflow-auto flex justify-center items-center p-4 mt-2" ref={zoomRef} />
-                                <div className="mt-4 flex justify-end">
-                                    <Button onClick={() => setIsMaximized(false)}>Close Diagram</Button>
-                                </div>
+                            <div className="flex flex-col h-full">
+                                <div className="flex-1 bg-white border border-gray-100 rounded-xl overflow-auto flex justify-center items-center p-4" ref={zoomRef} />
                             </div>
                         </Card>
                     </div>

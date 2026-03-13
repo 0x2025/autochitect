@@ -81,12 +81,13 @@ AUDIT MANDATE:
 1. FORMAT: Use the [C4 Model Hierarchy] (L1 System Context, L2 Containers, L3 Components, L4 Code & NFR).
 2. EXPERT FIDELITY: You MUST treat the Specialist Expert Reports as the primary source of truth. Do NOT omit any expert's findings unless your own tool-based verification definitively proves them false.
 3. MOAT ENFORCEMENT: If any expert report or discovery context indicates a violation of an "ARCHITECTURAL POLICY (MOAT)", you MUST include it as a finding.
-4. VERBATIM POLICIES: When an expert finding matches a MOAT policy, you MUST use the exact policy pattern name (e.g., "secret management in appsettings.json") in the finding's title or description. Apply the corresponding 'violation_type' as the criticality (SECURITY_RISK -> CRITICAL/HIGH).
+    **CRITICAL**: If a MOAT policy is marked as 'Verdict: INCORRECT', this means the pattern has been REJECTED by a human. You MUST IGNORE these patterns and NEVER report them as findings.
+4. VERBATIM POLICIES: When an expert finding matches a VALID MOAT policy (Verdict: CORRECT), you MUST use the exact policy pattern name (e.g., "secret management in appsettings.json") in the finding's title or description. Apply the corresponding 'violation_type' as the criticality (SECURITY_RISK -> CRITICAL/HIGH).
 5. NO SUMMARIZATION LOSS: You are prohibited from summarizing away specific vulnerabilities. They MUST appear in your final 'findings' array with exact file paths and evidence.
 6. EXHAUSTIVE COVERAGE: Ensure all critical security and NFR findings from specialists are included.
-8. VISUAL ARCHITECTURE: You MUST look for Mermaid C4 diagrams from the MERMAID_EXPERT. Ensure they follow Mermaid 11.x syntax (C4Context, C4Container, C4Component). NO PlantUML syntax, NO trailing commas, and NO unquoted special characters in labels.
-9. Provide a final overall "Architectural Health" verdict.
-10. AUTO-LAYOUT: Ensure diagrams are structured for optimal auto-layout by keeping relationships clear and definitions organized.`;
+87. VISUAL architecture: You MUST look for Mermaid diagrams from the MERMAID_EXPERT. Ensure they follow standard Mermaid Flowchart syntax (graph TD/LR) with C4-style classes. NO 'C4Context/Container/Component' DSL syntax.
+88. Provide a final overall \"Architectural Health\" verdict.
+89. AUTO-LAYOUT: Ensure diagrams are structured for optimal auto-layout by keeping relationships clear and definitions organized. Use subgraphs to denote boundaries.`;
 
         const structuredLlm = llm.withStructuredOutput(ReportSchema);
         console.log(`\n[Node: ${expertId}] Synthesizing Final Structured Report...`);
@@ -112,7 +113,9 @@ ${lessonPrompt || "No specific historical anti-patterns found."}
 AUDIT MANDATE:
 1. [L3 - Components]: Use 'get_component_details_ast' to map the internal architectural blocks (Namespaces, Modules) of the assigned path.
 2. [L4 - Code & NFR]: Zoom into 2-3 critical files. Analyze the Relationship Triad (Methods, Attributes, Dependencies).
-3. MOAT VERIFICATION: You MUST explicitly check for the "ARCHITECTURAL POLICIES (MOAT)" patterns listed above. If you find a match, report it with the exact pattern name and file evidence.
+3. MOAT VERIFICATION: You MUST explicitly check for the "ARCHITECTURAL POLICIES (MOAT)" patterns listed above. 
+    **IMPORTANT**: If a policy is marked as 'Verdict: INCORRECT', it has been rejected by a human auditor. You MUST ensure your findings DO NOT trigger on these specific rejected patterns. Use them as "Negative Examples" of what NOT to report.
+    If you find a match for a VALID policy (Verdict: CORRECT), report it with the exact pattern name and file evidence.
 4. NON-FUNCTIONAL FOCUS: Evaluate how the code handles Performance, Scalability, and Concurrency.
 5. PATH RESILIENCY: If a path is not found, use 'search_codebase' or 'get_repository_map' to locate it.
 6. Cite file paths and provide evidence-based verdicts.
@@ -167,8 +170,8 @@ export function extractMessageContent(message: any): string {
 }
 
 async function retrieveRelevantLessons(discoveryResult: string, state: typeof AgentState.State): Promise<Lesson[]> {
-    const allLessons = getLessons();
-    if (allLessons.length === 0) return [];
+    const filteredLessons = getLessons(state.repoUrl);
+    if (filteredLessons.length === 0) return [];
 
     const llm = createLLM("LOW", {
         provider: state.provider as any,
@@ -182,7 +185,7 @@ async function retrieveRelevantLessons(discoveryResult: string, state: typeof Ag
     });
 
     const contextSummary = `====== ARCHITECTURAL LESSONS MOAT ======
-${allLessons.map(l => `- ${l.pattern}: ${l.rationale}`).join("\n")}
+${filteredLessons.map(l => `- ${l.pattern}: ${l.rationale} (Verdict: ${l.human_verdict})`).join("\n")}
 ========================================
 
 ====== codebase Discovery Report ======
@@ -198,19 +201,21 @@ ${contextSummary}
 Rules:
 1. Select ALL lessons that are highly relevant to the detected technology (e.g., .NET, Docker, React) or architectural patterns (e.g., async, modularity, microservices).
 2. PRIORITIZE: Safety and Security lessons (e.g., secret management, untrusted sources) MUST be included if even a slight signal is present in the Discovery Report.
-3. LIMIT: Select up to 10 lessons. Do not include irrelevant lessons just to fill the quota.
-4. If no clear matches exist, return an empty list.
-5. Return only the 'pattern' strings for the selected lessons.`;
+3. INCLUDE REJECTIONS: You MUST include lessons even if they are marked 'Verdict: INCORRECT'. These serve as negative constraints to prevent the auditor from re-reporting rejected issues.
+4. LIMIT: Select up to 10 lessons. Do not include irrelevant lessons just to fill the quota.
+5. If no clear matches exist, return an empty list.
+6. Return only the 'pattern' strings for the selected lessons.
+`;
 
     try {
         const extractionLlm = llm.withStructuredOutput(lessonSelectionSchema);
         const result = await extractionLlm.invoke(prompt);
 
-        return allLessons.filter(l => result.selected_patterns.includes(l.pattern));
+        return filteredLessons.filter(l => result.selected_patterns.includes(l.pattern));
     } catch (e) {
         console.warn(`[Knowledge Moat] Semantic retrieval failed, falling back to keyword matching: ${e}`);
         // Fallback to simple keyword matching if LLM fails
-        return allLessons.filter(lesson =>
+        return filteredLessons.filter(lesson =>
             lesson.pattern.split(' ').some(word => discoveryResult.toLowerCase().includes(word.toLowerCase()))
         ).slice(0, 3);
     }
