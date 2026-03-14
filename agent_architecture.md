@@ -16,6 +16,18 @@ Building agent orchestration from scratch is complex. We rely on **LangChain (an
 *   **Expert Registry:** A central store that maps languages/frameworks to **Expert Blueprints** (Prompts, AST Queries, and specialized Tooling configurations).
 *   **Model Router:** A cost-optimizing layer that selects the most efficient model (e.g., Gemini Flash for AST mapping, Sonnet for architectural critique) based on task complexity. This ensures high ROI by commoditizing LLM compute.
 
+##### 1.3 Authentication & Identity (Auth.js v5)
+The platform uses **Auth.js (v5)** for secure, session-based authentication.
+*   **Centralized Config:** Configuration is isolated in `src/auth.ts` to provide a consistent `auth` helper across API routes and server components.
+*   **GitHub Provider:** Scoped with `repo` permissions to allow listing and cloning of private repositories.
+*   **Token Management:** The GitHub access token is stored server-side in the session JWT and is never exposed to the client-side.
+
+#### 1.4 Minimalist UX Strategy (Public-First)
+To optimize for flow and discoverability:
+*   **Public-First Scans:** The default interface is a clean, single-input URL field for public repositories.
+*   **Contextual Elevation:** Private scanning, repository browsing, and authentication are tucked behind a "Private Repository" toggle, appearing only when the user explicitly requests private access.
+*   **Minimalist Headers:** Identity controls are secondary; the UI prioritizes the analysis input above all else.
+
 #### 1.1 SaaS Registry Schema (Technical Specification)
 *(See previous section for schema details)*
 
@@ -34,8 +46,8 @@ The Registry is enriched through three primary channels, ensuring it stays ahead
     - Every human `CORRECT` or `INCORRECT` verdict on a report is analyzed. If multiple users mark a specific Registry-driven finding as `INCORRECT`, the Registry's heuristic for that framework is automatically flagged for an architect's review or autonomous tuning.
 
 **Key Design Decisions:**
-*   **Token Security:** Raw GitHub OAuth tokens are never placed on the job queue. Instead, jobs use temporary asymmetric key exchange (or short-lived installation tokens) dispatched securely via HTTPS webhooks to the Runner.
-*   **Simple Polling:** The Next.js UI avoids fragile WebSocket connections by using standard **HTTP Polling (via SWR/React Query)** every 3 seconds to fetch the latest job status from the database.
+*   **Strict Token Isolation:** User-initiated scans strictly use the user's own session token. The system explicitly shadows server-side environment variables with these session tokens during job enqueuing to prevent privilege escalation.
+*   **Simple Polling:** The Next.js UI avoids fragile WebSocket connections by using standard **HTTP Polling** every 3 seconds to fetch the latest job status from the database.
 
 ---
 
@@ -60,11 +72,11 @@ The Registry is enriched through three primary channels, ensuring it stays ahead
 **Tech Stack:** 
 *   **Framework:** LangChain JS (TypeScript) + **Multi-Provider LLM Factory** (Supporting Gemini, Claude, OpenAI, Vertex AI, and Ollama).
 *   **Dynamic Expert Routing:** Unlike traditional static switch-cases, the router queries the SaaS Registry to spawn agents based on detected tech vectors.
-*   **Target Ingestion:** Supports both **Secure Git Cloning** and **Native Local Directory Analysis** (automatic heuristic detection).
+*   **Target Ingestion:** Supports both **Authenticated Git Cloning** (via token injections) and **Native Local Directory Analysis**.
 *   **Static Parsing:** `tree-sitter-cli` using queries downloaded dynamically from the Registry.
 
 **Execution Flow:**
-1.  **Code Ingestion:** Container clones the target repository OR skips cloning if a local directory is detected.
+1.  **Code Ingestion:** Container clones the target repository. For private repositories, the runner constructs an authenticated URL (`https://<token>@github.com/...`) to bypass interactive credential prompts.
 2.  **Phase A: Language Detection & Parsing:** Agent scans the file tree and maps extensions to `tree-sitter` grammar binaries to generate an Abstract Syntax Tree (AST).
 3.  **Phase B: Querying the Topology (LLM Autopilot):** Instead of dumping 50,000 files into an LLM context window, we give the LangChain Orchestrator an "Autopilot Mode".
     *   **Infrastructure Signals:** The agent uses `find_infrastructure_signals` to locate Docker, IaC, and manifests, quickly inferring L1/L2 boundaries.

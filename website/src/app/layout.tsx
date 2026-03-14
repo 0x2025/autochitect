@@ -24,6 +24,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { Providers } from "./providers";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -32,11 +34,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased font-sans bg-white text-gray-900">
-        <div className="min-h-screen">
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            {children}
-          </main>
-        </div>
+        <Providers>
+          <div className="min-h-screen">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+              {children}
+            </main>
+          </div>
+        </Providers>
       </body>
     </html>
   );

@@ -5,6 +5,7 @@ import { Card, Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import Mermaid from "@/components/mermaid";
 import { useSearchParams, useRouter } from "next/navigation";
+import { Lock } from "lucide-react";
 
 interface Finding {
     id: string;
@@ -73,13 +74,18 @@ function ReportContent() {
         }
     }, [repoId, source]);
 
+    const [error, setError] = useState<string | null>(null);
+
     const fetchReport = async (id: string) => {
         setIsLoading(true);
+        setError(null);
         try {
             const res = await fetch(`/api/reports/${id}`);
             if (res.ok) {
                 const data = await res.json();
                 setReport(data);
+            } else if (res.status === 403) {
+                setError("Access Denied: You do not have permission to view this private report.");
             } else {
                 console.error("Report not found or not yet completed");
             }
@@ -174,6 +180,24 @@ function ReportContent() {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 py-20">
                 <p className="text-gray-500 text-sm font-bold tracking-widest uppercase animate-pulse">Generating Report</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="max-w-xl mx-auto py-20 px-4 text-center space-y-6">
+                <div className="inline-flex p-4 rounded-full bg-red-50 text-red-500 border border-red-100 mb-4">
+                    <Lock className="w-8 h-8" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">{error}</h2>
+                <p className="text-gray-500">This scan was performed on a private repository and is only available to the owner.</p>
+                <Button 
+                    onClick={() => router.push("/")}
+                    className="bg-gray-900 text-white px-8 h-12 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em]"
+                >
+                    Back to Dashboard
+                </Button>
             </div>
         );
     }

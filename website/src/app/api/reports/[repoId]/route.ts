@@ -14,6 +14,16 @@ export async function GET(
 ) {
     const { repoId } = await params;
 
+    // Access Control
+    const { queueWorker } = await import('@/lib/queue-worker');
+    const { auth } = await import('@/auth');
+    const session = await auth();
+    const task = queueWorker.getTask(repoId);
+
+    if (task?.isPrivate && task.ownerId !== (session as any)?.user?.id) {
+        return NextResponse.json({ error: 'Access Denied' }, { status: 403 });
+    }
+
     // 1. Try GCS if configured
     if (BUCKET_NAME) {
         try {

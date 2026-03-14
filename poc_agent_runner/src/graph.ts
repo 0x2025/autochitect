@@ -123,8 +123,16 @@ export function createGraph(isTest = false) {
         if (!fs.existsSync(localBasePath)) fs.mkdirSync(localBasePath, { recursive: true });
 
         if (!fs.existsSync(localPath)) {
-            console.log(`[Node: Clone] Cloning ${target} to ${localPath}...`);
-            await simpleGit().clone(target, localPath);
+            // Build authenticated URL if a token is available (supports private repos)
+            const token = state.token || process.env.GITHUB_TOKEN || null;
+            let cloneUrl = target;
+            if (token && target.match(/^https?:\/\/github\.com\//)) {
+                cloneUrl = target.replace(/^https:\/\//, `https://${token}@`);
+                console.log(`[Node: Clone] Cloning ${target} to ${localPath} (authenticated)...`);
+            } else {
+                console.log(`[Node: Clone] Cloning ${target} to ${localPath}...`);
+            }
+            await simpleGit().clone(cloneUrl, localPath);
         } else {
             console.log(`[Node: Clone] Repo already exists at ${localPath}. Skipping clone.`);
         }

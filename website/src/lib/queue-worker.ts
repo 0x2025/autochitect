@@ -12,6 +12,9 @@ export interface ScanTask {
     timestamp: number;
     findingsCount?: number;
     error?: string;
+    githubToken?: string;
+    ownerId?: string;
+    isPrivate?: boolean;
 }
 
 const storage = new Storage();
@@ -168,7 +171,7 @@ class QueueWorker {
         }
     }
 
-    async enqueue(repoUrl: string): Promise<string> {
+    async enqueue(repoUrl: string, githubToken?: string, ownerId?: string, isPrivate?: boolean): Promise<string> {
         const repoId = this.generateRepoId(repoUrl);
         
         // Deduplication Logic (Skip if running in local mode)
@@ -191,7 +194,10 @@ class QueueWorker {
             repoUrl,
             repoId,
             status: 'PENDING',
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            githubToken,
+            ownerId,
+            isPrivate
         };
 
         this.queue.unshift(task);
@@ -240,6 +246,10 @@ class QueueWorker {
             nextTask.status = 'FAILED';
             nextTask.error = err.message;
         } finally {
+            // Token Scrubbing: Remove sensitive token after processing
+            if (nextTask) {
+                delete nextTask.githubToken;
+            }
             this.isProcessing = false;
             await this.saveManifest();
             this.processNext();
@@ -267,7 +277,8 @@ class QueueWorker {
                     {
                         env: [
                             { name: 'TARGET_REPO_URL', value: task.repoUrl },
-                            { name: 'GCS_BUCKET_NAME', value: BUCKET_NAME }
+                            { name: 'GCS_BUCKET_NAME', value: BUCKET_NAME },
+                            { name: 'GITHUB_TOKEN', value: task.githubToken || '' }
                         ]
                     }
                 ]
@@ -296,7 +307,8 @@ class QueueWorker {
                     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
                     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
                     OLLAMA_HOST: process.env.OLLAMA_HOST,
-                    GCS_BUCKET_NAME: process.env.GCS_BUCKET_NAME
+                    GCS_BUCKET_NAME: process.env.GCS_BUCKET_NAME,
+                    GITHUB_TOKEN: task.githubToken || ''
                 },
                 cwd: process.cwd(),
                 stdio: 'inherit'

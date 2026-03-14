@@ -47,6 +47,12 @@ const cleanChart = (chart: string) =>
 const renderToElement = async (el: HTMLDivElement, chart: string, prefix: string) => {
     const id = `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
     el.innerHTML = `<div id="${id}" class="mermaid-container w-full h-full flex justify-center items-center">${chart}</div>`;
+    // Add a small delay and use requestAnimationFrame to ensure the container is painted and has dimensions.
+    // This prevents the "Could not find a suitable point for the given distance" error which often
+    // happens when rendering into a container that hasn't been fully laid out (like in a modal).
+    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
     try {
         await mermaid.run({ querySelector: `#${id}` });
         const svg = el.querySelector('svg');

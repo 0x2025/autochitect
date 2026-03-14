@@ -43,11 +43,21 @@ export async function GET(req: NextRequest) {
         }
     }
 
+    // 3. Filter by Privacy/Ownership
+    const { auth } = await import('@/auth');
+    const session = await auth();
+    const userId = (session as any)?.user?.id;
+
+    const filteredQueue = queue.filter(task => {
+        if (!task.isPrivate) return true; // Public
+        return task.ownerId === userId; // Private & Owner
+    });
+
     const start = (page - 1) * limit;
     const end = start + limit;
 
     return NextResponse.json({
-        tasks: queue.slice(start, end),
-        hasNext: queue.length > end
+        tasks: filteredQueue.slice(start, end),
+        hasNext: filteredQueue.length > end
     });
 }
