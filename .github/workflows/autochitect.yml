@@ -116,7 +116,7 @@ jobs:
             --cpu=1 \
             --timeout=300s \
             --set-secrets=GOOGLE_API_KEY=GOOGLE_API_KEY:latest,AUTH_SECRET=AUTH_SECRET:latest,GITHUB_CLIENT_SECRET=GITHUB_CLIENT_SECRET:latest \
-            --set-env-vars=NODE_ENV=production,GCS_BUCKET_NAME=autochitect,PROJECT_ID=${{ env.PROJECT_ID }},REGION=${{ env.REGION }},GITHUB_CLIENT_ID=${{ vars.ACTION_GITHUB_CLIENT_ID }},AUTH_TRUST_HOST=true
+            --set-env-vars=NODE_ENV=production,GCS_BUCKET_NAME=autochitect,PROJECT_ID=${{ env.PROJECT_ID }},REGION=${{ env.REGION }},GITHUB_CLIENT_ID=${{ vars.ACTION_GITHUB_CLIENT_ID }},AUTH_TRUST_HOST=true,AUTH_URL=${{ vars.ACTION_AUTH_URL }}
 
       - name: Deploy Cloud Run Job
         run: |
