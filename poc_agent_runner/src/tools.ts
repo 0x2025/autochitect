@@ -253,16 +253,15 @@ Object.defineProperties(global, {
   navigator: { value: dom.window.navigator, writable: true, configurable: true },
 });
 
-// Import mermaid AFTER mocking globals
-import mermaid from 'mermaid';
-
-// Mermaid initialization
-mermaid.initialize({
-  startOnLoad: false,
-});
-
 async function run() {
   try {
+    const { default: mermaid } = await import('mermaid');
+    
+    // Mermaid initialization
+    mermaid.initialize({
+      startOnLoad: false,
+    });
+
     const input = fs.readFileSync(0, 'utf-8');
     await mermaid.parse(input, { suppressErrors: false });
     process.stdout.write('OK');
@@ -287,7 +286,8 @@ run();
                 return "OK: Mermaid syntax is valid.";
             } catch (err: any) {
                 const errorOutput = err.stderr?.toString() || err.message;
-                return `ERROR: Mermaid syntax is invalid. ${errorOutput}`;
+                const hint = "\n\nHINT: If the error mentions a 'Parse error', check if your edge labels (e.g., -->|\"Label\"|) or node labels contain special characters like parentheses. ENCLOSE THEM IN DOUBLE QUOTES.";
+                return `ERROR: Mermaid syntax is invalid. ${errorOutput}${hint}`;
             } finally {
                 if (fs.existsSync(scriptPath)) fs.unlinkSync(scriptPath);
             }

@@ -17,3 +17,4 @@ AUDIT MANDATE:
 4. NON-FUNCTIONAL FOCUS: Evaluate how the code handles Performance, Scalability, and Concurrency.
 5. PATH RESILIENCY: If a path is not found, use 'search_codebase' or 'get_repository_map' to locate it.
 6. Cite file paths and provide evidence-based verdicts. Audit for: Modular Integrity, Decoupling, SOLID, and NFR execution. Only report NEGATIVE findings (issues, risks, violations). DO NOT report success stories or "good feedback". Every finding MUST have evidence from the codebase, including a small snippet (4 lines above, 1 line below the issue).
+7. PROACTIVE RETRY: If a tool (like 'validate_mermaid' or 'get_component_details_ast') returns an error, do not give up. Analyze the error message, correct your parameters or the input, and TRY AGAIN. You have a recursion limit of 50; use it to ensure a valid and grounded result.

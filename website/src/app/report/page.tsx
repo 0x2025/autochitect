@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
-import { Card, Button } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import Mermaid from "@/components/mermaid";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Lock } from "lucide-react";
+import { Lock, FileText, Activity, AlertTriangle, CheckCircle2, ChevronRight, Download } from "lucide-react";
 
 interface Finding {
     id: string;
@@ -37,7 +37,7 @@ export default function ReportPage() {
     return (
         <Suspense fallback={
             <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 py-20">
-                <p className="text-gray-500 text-sm font-bold tracking-widest uppercase animate-pulse">Loading Report...</p>
+                <p className="text-slate-500 text-[10px] font-bold tracking-widest uppercase animate-pulse">Loading Analysis Report...</p>
             </div>
         }>
             <ReportContent />
@@ -153,33 +153,33 @@ function ReportContent() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `analysis_report_${new Date().toISOString().split('T')[0]}.json`;
+        a.download = `autonomous_architect_report_${new Date().toISOString().split('T')[0]}.json`;
         a.click();
     };
 
-    const getHealthColor = (health: string) => {
+    const getHealthStyles = (health: string) => {
         switch (health) {
-            case "POOR": return "bg-red-50 text-red-700 border-red-100";
-            case "FAIR": return "bg-amber-50 text-amber-700 border-amber-100";
-            case "GOOD": return "bg-emerald-50 text-emerald-700 border-emerald-100";
-            default: return "bg-gray-50 text-gray-700 border-gray-100";
+            case "POOR": return "border-red-600 text-red-700 bg-red-50/30";
+            case "FAIR": return "border-amber-600 text-amber-700 bg-amber-50/30";
+            case "GOOD": return "border-emerald-600 text-emerald-700 bg-emerald-50/30";
+            default: return "border-slate-400 text-slate-500 bg-slate-50/30";
         }
     };
 
-    const getCriticalityStyles = (criticality: string) => {
+    const getCriticalityBadge = (criticality: string) => {
         switch (criticality) {
-            case "CRITICAL": return "bg-red-100 text-red-800 border-red-200";
-            case "HIGH": return "bg-orange-100 text-orange-800 border-orange-200";
-            case "MEDIUM": return "bg-amber-100 text-amber-800 border-amber-200";
-            case "LOW": return "bg-blue-100 text-blue-800 border-blue-200";
-            default: return "bg-gray-100 text-gray-800 border-gray-200";
+            case "CRITICAL": return "border-red-900 text-red-900 bg-red-50";
+            case "HIGH": return "border-orange-900 text-orange-900 bg-orange-50";
+            case "MEDIUM": return "border-amber-900 text-amber-900 bg-amber-50";
+            case "LOW": return "border-slate-600 text-slate-600 bg-slate-50";
+            default: return "border-slate-400 text-slate-400";
         }
     };
 
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 py-20">
-                <p className="text-gray-500 text-sm font-bold tracking-widest uppercase animate-pulse">Generating Report</p>
+                <p className="text-slate-500 text-[10px] font-bold tracking-widest uppercase animate-pulse italic">Generating Autonomous Report</p>
             </div>
         );
     }
@@ -187,27 +187,27 @@ function ReportContent() {
     if (error) {
         return (
             <div className="max-w-xl mx-auto py-20 px-4 text-center space-y-6">
-                <div className="inline-flex p-4 rounded-full bg-red-50 text-red-500 border border-red-100 mb-4">
-                    <Lock className="w-8 h-8" />
+                <div className="inline-flex p-4 border border-red-200 bg-red-50/50 text-red-600 mb-4">
+                    <Lock size={32} />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900">{error}</h2>
-                <p className="text-gray-500">This scan was performed on a private repository and is only available to the owner.</p>
-                <Button 
+                <h2 className="text-2xl font-serif italic text-slate-900">{error}</h2>
+                <p className="text-sm text-slate-600 font-serif leading-relaxed">This scan contains private information and is only available to the authorized repository owner.</p>
+                <button 
                     onClick={() => router.push("/")}
-                    className="bg-gray-900 text-white px-8 h-12 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em]"
+                    className="bg-slate-800 text-white px-8 h-10 text-[11px] font-bold uppercase tracking-widest"
                 >
-                    Back to Dashboard
-                </Button>
+                    &laquo; Exit to Dashboard
+                </button>
             </div>
         );
     }
 
     if (!report) {
         return (
-            <div className="max-w-xl mx-auto py-20 px-4">
+            <div className="max-w-xl mx-auto py-20 px-4 text-center">
                 <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="group relative border border-gray-100 rounded-3xl p-16 text-center cursor-pointer hover:border-gray-300 hover:bg-gray-50/50 transition-all duration-300"
+                    className="group relative border border-slate-300 bg-[#f8f8f0] p-16 cursor-pointer hover:border-slate-800 transition-all"
                 >
                     <input
                         type="file"
@@ -217,9 +217,10 @@ function ReportContent() {
                         onChange={handleFileUpload}
                     />
                     <div className="flex flex-col items-center">
-                        <h2 className="text-xl font-bold text-gray-900 mb-2">Upload Analysis Report</h2>
-                        <p className="text-gray-400 text-[11px] font-bold uppercase tracking-widest max-w-xs mx-auto mt-4">
-                            Drop report.json here
+                        <FileText size={48} className="text-slate-300 mb-4 group-hover:text-slate-800 transition-colors" />
+                        <h2 className="text-xl font-serif italic text-slate-900 mb-2">Import Report</h2>
+                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-2">
+                            Select report.json file
                         </p>
                     </div>
                 </div>
@@ -228,44 +229,45 @@ function ReportContent() {
     }
 
     return (
-        <div className="max-w-6xl mx-auto px-4 py-12 space-y-12">
+        <div className="space-y-10">
             {/* Header */}
-            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-gray-100 pb-8">
+            <header className="border-b-2 border-slate-800 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div className="space-y-4">
                     <button
-                        onClick={() => router.push("/")}
-                        className="text-[10px] font-bold text-gray-400 hover:text-gray-900 transition-colors uppercase tracking-widest"
+                        onClick={() => router.push("/tools/architecture-scan")}
+                        className="text-[10px] font-bold text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-widest"
                     >
-                        Back to Projects
+                        &laquo; Back to Scanner
                     </button>
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">Architecture Report</h1>
-                    <p className="text-gray-500 font-medium">Comprehensive analysis of system design and code quality.</p>
+                    <h1 className="text-3xl font-serif italic m-0">Architecture Report</h1>
+                    <div className="flex flex-wrap items-center gap-4 text-xs font-serif text-slate-600">
+                        <span className="flex items-center gap-1"><Activity size={14} /> ID: {repoId || "Local"}</span>
+                        {report.repoUrl && (
+                            <span className="border-l border-slate-300 pl-4 truncate max-w-xs">{report.repoUrl}</span>
+                        )}
+                    </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={handleExport}
-                        className="px-6 py-2.5 border border-gray-200 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-50 transition-colors"
-                    >
-                        Export Data
-                    </button>
-                </div>
+                <button
+                    onClick={handleExport}
+                    className="px-6 py-2 border border-slate-300 bg-[#e0e0d0] text-[11px] font-bold uppercase tracking-widest hover:bg-[#d0d0c0] transition-colors flex items-center gap-2"
+                >
+                    <Download size={14} /> Export Results
+                </button>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                 {/* Information Column */}
-                <aside className="lg:col-span-4 space-y-12">
+                <aside className="lg:col-span-4 space-y-10">
                     {/* Health Section */}
                     <section className="space-y-4">
-                        <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
-                            System Health
-                        </div>
+                        <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500 border-b border-slate-200 pb-1">System Health</h3>
                         <div className={cn(
-                            "px-4 py-3 rounded-xl border font-bold text-center text-lg tracking-tight",
-                            getHealthColor(report.health)
+                            "px-4 py-2 border-2 font-bold text-center text-lg tracking-widest font-sans",
+                            getHealthStyles(report.health)
                         )}>
                             {report.health}
                         </div>
-                        <div className="text-gray-600 text-sm leading-relaxed bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                        <div className="text-sm font-serif leading-relaxed text-slate-800 bg-[#f8f8f0] p-4 border border-slate-200">
                             {report.summary}
                         </div>
                     </section>
@@ -273,34 +275,32 @@ function ReportContent() {
                     {/* Diagram Section */}
                     {report.diagrams && (report.diagrams.c1 || report.diagrams.c2 || report.diagrams.c3) && (
                         <section className="space-y-4">
-                            <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
-                                Model Diagrams
-                            </div>
-                            <div className="border border-gray-100 rounded-2xl overflow-hidden bg-white">
-                                <nav className="flex items-center border-b border-gray-100 bg-gray-50/50 p-1">
+                            <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500 border-b border-slate-200 pb-1">Structural Models</h3>
+                            <div className="border border-slate-300">
+                                <nav className="flex bg-[#e0e0d0] border-b border-slate-300">
                                     {(["c1", "c2", "c3"] as const).map((tab) => (
                                         <button
                                             key={tab}
                                             onClick={() => setActiveTab(tab)}
                                             className={cn(
-                                                "flex-1 py-2 text-[10px] font-bold transition-all rounded-lg uppercase tracking-widest",
+                                                "flex-1 py-1.5 text-[10px] font-bold transition-all uppercase tracking-widest text-center",
                                                 activeTab === tab
-                                                    ? "bg-white text-gray-900 shadow-sm border border-gray-100"
-                                                    : "text-gray-400 hover:text-gray-600"
+                                                    ? "bg-[#e8e8d8] text-slate-900 border-x border-slate-300 first:border-l-0 last:border-r-0"
+                                                    : "text-slate-500 hover:text-slate-800"
                                             )}
                                         >
-                                            {tab}
+                                            {tab === "c1" ? "Context" : tab === "c2" ? "Container" : "Component"}
                                         </button>
                                     ))}
                                 </nav>
-                                <div className="p-4 bg-white min-h-[300px] flex items-center justify-center">
+                                <div className="p-4 flex items-center justify-center min-h-[300px]">
                                     {report.diagrams[activeTab] ? (
                                         <div className="w-full">
                                             <Mermaid chart={report.diagrams[activeTab]} />
                                         </div>
                                     ) : (
-                                        <div className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
-                                            No Data
+                                        <div className="text-[10px] font-bold text-slate-300 uppercase italic">
+                                            No data for this level
                                         </div>
                                     )}
                                 </div>
@@ -310,137 +310,118 @@ function ReportContent() {
                 </aside>
 
                 {/* Findings Column */}
-                <main className="lg:col-span-8 space-y-8">
-                    <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-                        <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
-                            Findings ({report.findings.length})
-                        </div>
+                <main className="lg:col-span-8 space-y-6">
+                    <div className="border-b border-slate-800 pb-1 flex justify-between items-end">
+                        <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Autonomous Findings</h3>
+                        <span className="text-[10px] italic text-slate-400">{report.findings.length} points identified</span>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-8">
                         {report.findings.map((finding) => (
                             <div
                                 key={finding.id}
                                 className={cn(
-                                    "group border border-gray-100 rounded-2xl overflow-hidden bg-white transition-all",
-                                    validatedFindings[finding.id] ? "opacity-60 bg-gray-50/50" : "hover:border-gray-200 hover:shadow-xl hover:shadow-gray-100/50"
+                                    "border-l-4 p-5 space-y-4",
+                                    finding.criticality === "CRITICAL" ? "border-red-600" : 
+                                    finding.criticality === "HIGH" ? "border-orange-600" :
+                                    finding.criticality === "MEDIUM" ? "border-amber-600" : "border-slate-400",
+                                    validatedFindings[finding.id] && "opacity-60 grayscale bg-slate-50"
                                 )}
                             >
-                                <div className="p-6 space-y-6">
-                                    <div className="flex items-start justify-between gap-6">
-                                        <div className="space-y-3">
-                                            <div className="flex items-center gap-2">
-                                                <span className={cn(
-                                                    "px-2 py-0.5 rounded-lg text-[10px] font-bold border uppercase tracking-widest",
-                                                    getCriticalityStyles(finding.criticality)
-                                                )}>
-                                                    {finding.criticality}
-                                                </span>
-                                                <h3 className="text-lg font-bold text-gray-900 leading-tight tracking-tight">
-                                                    {finding.title}
-                                                </h3>
-                                            </div>
-                                            <p className="text-gray-500 text-sm leading-relaxed font-medium">
-                                                {finding.impact}
-                                            </p>
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className={cn(
+                                                "px-1.5 py-0.5 text-[9px] font-bold border uppercase tracking-widest",
+                                                getCriticalityBadge(finding.criticality)
+                                            )}>
+                                                {finding.criticality}
+                                            </span>
+                                            <h4 className="text-lg font-serif italic text-slate-900 leading-tight">
+                                                {finding.title}
+                                            </h4>
                                         </div>
+                                        <p className="text-sm font-serif text-slate-700 italic">
+                                            {finding.impact}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => setExpandedFinding(expandedFinding === finding.id ? null : finding.id)}
+                                        className="text-[10px] font-bold text-slate-400 hover:text-slate-800 uppercase tracking-widest transition-colors"
+                                    >
+                                        {expandedFinding === finding.id ? "Minimize &laquo;" : "Details &raquo;"}
+                                    </button>
+                                </div>
+
+                                {expandedFinding === finding.id && (
+                                    <div className="space-y-6 pt-6 border-t border-slate-100 animate-in fade-in duration-300">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            <div className="space-y-2">
+                                                <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Description</h5>
+                                                <div className="text-sm font-serif text-slate-800 leading-relaxed bg-[#f8f8f0] p-4 border border-slate-200">
+                                                    {finding.description}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Recommendation</h5>
+                                                <div className="text-sm font-serif text-slate-900 font-bold leading-relaxed border-2 border-slate-800 p-4 italic">
+                                                    {finding.recommendation}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Affected Files</h5>
+                                            <div className="flex flex-wrap gap-2">
+                                                {finding.files.map(f => (
+                                                    <span key={f} className="font-mono text-[10px] text-slate-600 bg-slate-100 px-2 py-0.5 border border-slate-200">
+                                                        {f}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {finding.evidenceCode && (
+                                            <div className="space-y-2">
+                                                <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Signal Evidence</h5>
+                                                <pre className="text-[11px] font-mono leading-relaxed bg-[#1a1a1a] text-[#dcdcdc] p-4 border border-slate-800 overflow-x-auto">
+                                                    <code>{finding.evidenceCode}</code>
+                                                </pre>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {!validatedFindings[finding.id] ? (
+                                    <div className="pt-2 flex items-center gap-4">
                                         <button
-                                            onClick={() => setExpandedFinding(expandedFinding === finding.id ? null : finding.id)}
-                                            className="px-3 py-1 bg-gray-50 hover:bg-gray-100 rounded-lg text-[10px] font-bold text-gray-400 uppercase tracking-widest transition-colors shrink-0"
+                                            disabled={isSavingMoat === finding.id}
+                                            onClick={() => handleMoatConfirmation(finding, true)}
+                                            className="px-6 py-1.5 bg-slate-800 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all flex items-center gap-2"
                                         >
-                                            {expandedFinding === finding.id ? "Hide" : "Show"}
+                                            <CheckCircle2 size={12} /> {isSavingMoat === finding.id ? "Saving..." : "Accept Finding"}
+                                        </button>
+                                        <button
+                                            disabled={isSavingMoat === finding.id}
+                                            onClick={() => handleMoatConfirmation(finding, false)}
+                                            className="px-6 py-1.5 border border-slate-300 text-slate-400 text-[10px] font-bold uppercase tracking-widest hover:text-red-600 hover:border-red-600 transition-all flex items-center gap-2"
+                                        >
+                                            <AlertTriangle size={12} /> Dismiss
                                         </button>
                                     </div>
-
-                                    {expandedFinding === finding.id && (
-                                        <div className="space-y-8 pt-6 border-t border-gray-100 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                                <div className="space-y-3">
-                                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                                        Description
-                                                    </h4>
-                                                    <p className="text-sm text-gray-600 leading-relaxed bg-gray-50/50 p-5 rounded-2xl border border-gray-100">
-                                                        {finding.description}
-                                                    </p>
-                                                </div>
-                                                <div className="space-y-3">
-                                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                                        Recommendation
-                                                    </h4>
-                                                    <p className="text-sm text-gray-900 font-bold leading-relaxed bg-blue-50/50 p-5 rounded-2xl border border-blue-100 italic">
-                                                        {finding.recommendation}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                                <div className="flex flex-wrap gap-2">
-                                                    {finding.files.map(f => {
-                                                        const repoBase = report.repoUrl?.replace(/\/+$/, '');
-                                                        const githubUrl = repoBase ? `${repoBase}/blob/main/${f}` : null;
-                                                        const badge = (
-                                                            <span className="inline-flex items-center font-mono text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded border border-gray-100">
-                                                                {f}
-                                                            </span>
-                                                        );
-                                                        return githubUrl ? (
-                                                            <a key={f} href={githubUrl} target="_blank" rel="noopener noreferrer"
-                                                               className="hover:opacity-70 transition-opacity">
-                                                                {badge}
-                                                            </a>
-                                                        ) : (
-                                                            <span key={f}>{badge}</span>
-                                                        );
-                                                    })}
-                                                </div>
-
-                                            {finding.evidenceCode && (
-                                                <div className="space-y-3">
-                                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                                        Code Evidence
-                                                    </h4>
-                                                    <div className="relative group/code">
-                                                        <pre className="text-[12px] font-mono leading-relaxed bg-[#0d1117] text-[#e6edf3] p-5 rounded-2xl border border-gray-100 overflow-x-auto">
-                                                            <code>{finding.evidenceCode}</code>
-                                                        </pre>
-                                                        <div className="absolute top-4 right-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-0 group-hover/code:opacity-100 transition-opacity">
-                                                            Snippet
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {!validatedFindings[finding.id] ? (
-                                        <div className="pt-2 flex items-center gap-3">
-                                            <button
-                                                disabled={isSavingMoat === finding.id}
-                                                onClick={() => handleMoatConfirmation(finding, true)}
-                                                className="flex-1 sm:flex-initial px-8 py-2.5 bg-gray-900 text-white rounded-xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-800 disabled:opacity-50 transition-all"
-                                            >
-                                                {isSavingMoat === finding.id ? "Saving" : "Accept"}
-                                            </button>
-                                            <button
-                                                disabled={isSavingMoat === finding.id}
-                                                onClick={() => handleMoatConfirmation(finding, false)}
-                                                className="flex-1 sm:flex-initial px-8 py-2.5 bg-white text-gray-400 border border-gray-200 rounded-xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-50 hover:text-red-500 transition-all"
-                                            >
-                                                Reject
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="pt-2">
-                                            <div className={cn(
-                                                "inline-flex px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest",
-                                                validatedFindings[finding.id].valid
-                                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                                                    : "bg-red-50 text-red-700 border border-red-100"
-                                            )}>
-                                                {validatedFindings[finding.id].valid ? "Validated" : "Dismissed"}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
+                                ) : (
+                                    <div className="pt-2 flex items-center gap-2">
+                                        {validatedFindings[finding.id].valid ? (
+                                            <span className="text-[10px] font-bold uppercase text-emerald-700 bg-emerald-50 px-3 py-1 border border-emerald-100 flex items-center gap-1.5">
+                                                <CheckCircle2 size={12} /> Validated to Knowledge Base
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] font-bold uppercase text-red-700 bg-red-50 px-3 py-1 border border-red-100 flex items-center gap-1.5">
+                                                <AlertTriangle size={12} /> Dismissed Analysis
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

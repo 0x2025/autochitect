@@ -1,67 +1,137 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Inter", "Geist Sans", system-ui, sans-serif;
-  --font-mono: "Geist Mono", "Roboto Mono", monospace;
-
-  --color-border: #e5e7eb;
-  --color-surface: #ffffff;
-  --color-muted: #6b7280;
-}
-
 :root {
-  --background: #ffffff;
-  --foreground: #111827;
+  --background: #f0f0e0;
+  --foreground: #000000;
+  --nav-bg: #e0e0d0;
+  --link-color: #0000cc;
+  --link-visited: #551a8b;
+  --border-color: #888888;
+  --hover-bg: #d0d0c0; /* Better contrast for hover */
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans);
+  font-family: serif;
+  line-height: 1.5;
+  margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Minimalist Utilities */
-.ui-card {
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+a {
+  color: var(--link-color);
+  text-decoration: none;
 }
 
-.ui-inset {
-  background-color: #f9fafb;
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+a:hover {
+  text-decoration: underline;
 }
 
-.ui-btn {
-  background-color: #111827;
-  color: #ffffff;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.2s;
+a:visited {
+  color: var(--link-visited);
 }
 
-.ui-btn:hover {
-  background-color: #1f2937;
+h1, h2, h3, h4, h5, h6 {
+  font-family: sans-serif;
+  color: #000000;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
-.ui-btn:disabled {
+.lwn-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  /* Inherit background as requested */
+  background-color: transparent; 
+  min-height: 100vh;
+}
+
+.lwn-header {
+  border-bottom: 2px solid #000;
+  padding: 10px 20px;
+  background-color: transparent;
+}
+
+.lwn-nav-bar {
+  background-color: var(--nav-bg);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0;
+  font-family: sans-serif;
+  font-size: 0.9rem;
+}
+
+.lwn-content {
+  padding: 20px;
+}
+
+.lwn-article {
+  margin-bottom: 2rem;
+}
+
+.lwn-sidebar {
+  width: 200px;
+  float: left;
+  padding: 10px 20px;
+  background-color: #e8e8d8;
+  border-right: 1px solid #ccc;
+  font-family: sans-serif;
+  font-size: 0.85rem;
+  min-height: 100vh;
+}
+
+/* Fix spacing on main content area */
+.lwn-main-column {
+  flex: 1;
+  background-color: transparent; 
+  min-height: 100vh;
+}
+
+/* Hover fixes for menu */
+.lwn-sidebar a {
+  display: block;
+  padding: 2px 5px;
+  color: #000;
+}
+
+.lwn-sidebar a:hover {
+  background-color: var(--hover-bg);
+  text-decoration: none;
+  color: #000;
+}
+
+/* LWN-style buttons */
+.lwn-btn {
+  display: inline-block;
+  background-color: #f0f0f0;
+  border: 1px solid #888;
+  color: #000;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: sans-serif;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.lwn-btn:hover {
+  background-color: #e0e0e0;
+  border-color: #000;
+  text-decoration: none;
+}
+
+.lwn-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.ui-btn-secondary {
-  background-color: #ffffff;
-  color: #374151;
-  border: 1px solid var(--color-border);
-}
-
-.ui-btn-secondary:hover {
-  background-color: #f9fafb;
-  border-color: #d1d5db;
+@media (max-width: 768px) {
+  .lwn-sidebar {
+    width: 100%;
+    float: none;
+    border-right: none;
+    border-bottom: 1px solid #ccc;
+    min-height: auto;
+  }
 }

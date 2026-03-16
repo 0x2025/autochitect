@@ -1,20 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { Providers, ProvidersContent } from "./providers";
+import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Autochitect | Architectural Agent",
-  description: "Autonomous Architectural Analysis and Report Validation",
+  title: "autochitect.com | Autonomous Architecture, Code, AI",
+  description: "Autonomous Architecture: Random thoughts on software architecture, code, and the AI era.",
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -24,8 +15,6 @@ export const metadata: Metadata = {
   },
 };
 
-import { Providers } from "./providers";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,12 +22,51 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased font-sans bg-white text-gray-900">
+      <body className="antialiased">
         <Providers>
-          <div className="min-h-screen">
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-              {children}
-            </main>
+          <div className="lwn-container">
+            <header className="lwn-header">
+              <p className="text-xs font-sans tracking-tight text-slate-500 uppercase">
+                Autonomous Architecture: Random thoughts on software architecture, code, and the AI era
+              </p>
+            </header>
+            <div className="flex flex-col md:flex-row min-h-screen">
+              <aside className="lwn-sidebar">
+                <section className="mb-6">
+                  <h3 className="text-xs font-bold uppercase mt-0 mb-2 border-b border-black">Menu</h3>
+                  <ul className="list-none p-0 m-0 space-y-1">
+                    <li><Link href="/" className="hover:bg-[#d0d0c0]">Home</Link></li>
+                    <li><Link href="/archives" className="hover:bg-[#d0d0c0]">Archives</Link></li>
+                  </ul>
+                </section>
+                
+                <section className="mb-6">
+                  <h3 className="text-xs font-bold uppercase mt-4 mb-2 border-b border-black">Tools</h3>
+                  <ul className="list-none p-0 m-0 space-y-1">
+                    <li><Link href="/tools/architecture-scan" className="hover:bg-[#d0d0c0]">Architecture Scan</Link></li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 className="text-xs font-bold uppercase mt-4 mb-2 border-b border-black">Focus</h3>
+                  <p className="text-[11px] leading-relaxed">
+                    My software tools and random thoughts.
+                  </p>
+                </section>
+                <section className="mt-8 pt-4 border-t border-black">
+                  <h3 className="text-xs font-bold uppercase mb-2 border-b border-black">Account</h3>
+                  <div className="text-[11px]">
+                    <ProvidersContent />
+                  </div>
+                </section>
+              </aside>
+              <main className="lwn-main-column lwn-content">
+                {children}
+              </main>
+            </div>
+            <footer className="border-t border-slate-300 p-4 text-[10px] text-center font-sans text-slate-400">
+              &copy; 2026 autochitect.com by <a href="https://www.linkedin.com/in/sangcu/" target="_blank" rel="noopener noreferrer" className="hover:underline">Sang</a>
+            </footer>
           </div>
         </Providers>
       </body>
