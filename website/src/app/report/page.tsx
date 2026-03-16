@@ -237,7 +237,7 @@ function ReportContent() {
                         onClick={() => router.push("/tools/architecture-scan")}
                         className="text-[10px] font-bold text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-widest"
                     >
-                        &laquo; Back to Scanner
+                        &laquo; Back to Product
                     </button>
                     <h1 className="text-3xl font-serif italic m-0">Architecture Report</h1>
                     <div className="flex flex-wrap items-center gap-4 text-xs font-serif text-slate-600">

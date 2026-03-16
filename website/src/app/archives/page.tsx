@@ -42,7 +42,7 @@ export default function Archives() {
                         </span>
                         <div className="space-y-1">
                           <h4 className="m-0 text-md font-bold">
-                            <Link href={`/posts/${slug}`} className="hover:underline">
+                            <Link href={`/articles/${slug}`} className="hover:underline">
                               {title}
                             </Link>
                           </h4>
