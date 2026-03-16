@@ -20,13 +20,11 @@ Autochitect can reason about how your code is talking to each other. It checks i
 ## How we managed memory and knowledge
 
 We cannot put all code in an LLM because the context is limited. So Autochitect manages it like this:
-1.  **Symbol Graph Compression**: Change code to a small "Symbol Graph". We only keep modules and interfaces.
-2.  **Lesson Store**: This is memory. When I (human) say "this finding is wrong", the agent saves it as a "Lesson". Next time it scans, it will look at these lessons to not make the same mistake.
-3.  **Expert Registry**: Different tech like Next.js or Spring Boot needs different knowledge. So we have "Expert Blueprints" to help the agent understand each one.
 
-### The Challenge of Context
-LLMs are **stateless**. This is a big challenge. They forget everything after one request. 
-To manage this, Autochitect keeps context managed in a "Persistent Contextual Thread". I use LangGraph to manage the state. The agent remembers what it found in the first step when it goes to the next step. So it can see the whole system, not just one file.
+1.  **Symbol Graph Compression**: We don't send the RAW source code. We reduce it to a minified "Symbol Graph". This topology map only keeps modules, interfaces, and dependencies. It saves a lot of context and helps the agent see the big picture.
+2.  **Summarized Context (Flash Memory)**: Instead of long history, the agent only receives relevant goal, current file context, and a summarized list of "Lessons Learned" from previous steps. This prevents "context bloat" and keeps the reasoning sharp.
+3.  **Lesson Store**: This is our long-term memory. When a human gives feedback (like "this is a false positive"), we save it as a "Lesson" in a vector store. Next time the agent scans, it retrieves these lessons to not make the same mistake.
+4.  **LangGraph Persistence**: LLMs are **stateless**—they forget everything after one request. We use LangGraph to manage the agentic state across the workflow. This ensures the agent remembers what it found in early stages when it reaches the final analysis.
 
 ## Disclaimer
 
