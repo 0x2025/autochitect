@@ -767,5 +767,31 @@
             "search_codebase",
             "find_infrastructure_signals"
         ]
+    },
+    {
+        "expert_id": "MERMAID_VALIDATOR_EXPERT",
+        "specialties": [
+            "Mermaid.js Validation",
+            "Syntax Correction",
+            "C4 Diagrams"
+        ],
+        "triggers": {
+            "file_patterns": [
+                "*"
+            ],
+            "dependency_match": [
+                "*"
+            ]
+        },
+        "grounding": {
+            "extensions": [
+                ".mmd",
+                ".md"
+            ]
+        },
+        "expert_prompt_ref": "Mermaid Validation Specialist. Your ONLY job is to take generated Mermaid diagram code, run it through the `validate_mermaid` tool, and if there are errors, correct the syntax (e.g. adding double quotes around labels with spaces, fixing edge syntax, removing trailing commas). You MUST return ONLY the raw, corrected Mermaid code block (without ```mermaid wrappers) that passes validation.",
+        "tools": [
+            "validate_mermaid"
+        ]
     }
 ]

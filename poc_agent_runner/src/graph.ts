@@ -2,12 +2,7 @@ import { StateGraph, START, END, MemorySaver, Send } from "@langchain/langgraph"
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { AgentState, getRegistry, getModelForTask } from "./config";
 import { createLLM } from "./models";
-import {
-    discoveryNode,
-    expertAgentNode,
-    criticAgentNode,
-    synthesizeNode
-} from "./nodes";
+import { discoveryNode, expertAgentNode, criticAgentNode, synthesizeNode, validateDiagramsNode } from "./nodes";
 import { z } from "zod";
 import * as path from "path";
 import * as fs from "fs";
@@ -145,14 +140,16 @@ export function createGraph(isTest = false) {
         .addNode("discover", discoveryNode)
         .addNode("expertAgent", expertAgentNode)
         .addNode("auditor", criticAgentNode)
-        .addNode("synthesize", synthesizeNode);
+        .addNode("synthesize", synthesizeNode)
+        .addNode("validateDiagrams", validateDiagramsNode);
 
     workflow.addEdge(START, "cloneRepo");
     workflow.addEdge("cloneRepo", "discover");
     workflow.addConditionalEdges("discover", routeToExperts);
     workflow.addEdge("expertAgent", "auditor");
     workflow.addEdge("auditor", "synthesize");
-    workflow.addEdge("synthesize", END);
+    workflow.addEdge("synthesize", "validateDiagrams");
+    workflow.addEdge("validateDiagrams", END);
 
     return workflow.compile({ checkpointer: new MemorySaver() });
 }
