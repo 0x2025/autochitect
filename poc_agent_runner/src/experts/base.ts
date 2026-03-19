@@ -14,7 +14,8 @@ import { z } from "zod";
 function loadPrompt(promptName: string, variables: Record<string, string>): string {
     const promptPath = path.join(__dirname, "prompts", `${promptName}.md`);
     if (!fs.existsSync(promptPath)) {
-        throw new Error(`Prompt file not found: ${promptPath}`);
+        console.warn(`Prompt file not found: ${promptPath}. Returning empty string.`);
+        return "";
     }
     let content = fs.readFileSync(promptPath, "utf-8");
     for (const [key, value] of Object.entries(variables)) {
