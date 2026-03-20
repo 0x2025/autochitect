@@ -69,7 +69,7 @@ export default function RootLayout({
             <footer className="border-t border-slate-300 p-4 text-[12px] text-center font-sans text-slate-400">
               &copy; 2026 autochitect.com by <a href="https://www.linkedin.com/in/sangcu/" target="_blank" rel="noopener noreferrer" className="hover:underline">Sang</a>
               <br />
-              build and maintain by claw bot
+              Build and maintain by Open SWE
             </footer>
           </div>
         </Providers>
