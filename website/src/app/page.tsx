@@ -1,63 +1,93 @@
 import Link from "next/link";
 import { getSortedPostsData } from "@/lib/posts";
+import { TOPIC_GROUPS } from "@/lib/topics";
 
 export const metadata = {
-  title: "Autonomous Architect | Home",
-  description: "Latest articles on software architecture, code, and AI.",
+  title: "autochitect | Software Architecture & Engineering",
+  description: "A knowledge base for software architecture, system design, and engineering craft.",
 };
 
 export default function Home() {
-  const allPostsData = getSortedPostsData();
+  const posts = getSortedPostsData();
+  const totalTopics = TOPIC_GROUPS.reduce((n, g) => n + g.entries.length, 0);
+  const linkedTopics = TOPIC_GROUPS.reduce(
+    (n, g) => n + g.entries.filter((e) => e.articleSlug).length,
+    0
+  );
 
   return (
-    <div className="space-y-10">
-      <section>
-        <h2 className="text-xl font-bold border-b-2 border-slate-800 pb-1 mb-6">Recent Articles</h2>
-        <div className="space-y-12">
-          {allPostsData.length > 0 ? (
-            allPostsData.map(({ slug, date, title, summary, tags }) => (
-              <article key={slug} className="lwn-article">
-                <header>
-                  <h3 className="lwn-article-title m-0">
-                    <Link href={`/articles/${slug}`} className="hover:underline">
-                      {title}
-                    </Link>
-                  </h3>
-                  <div className="lwn-article-meta text-[13px] text-slate-600 font-sans uppercase mb-2">
-                    {date} | Tags: {tags.join(", ")}
-                  </div>
-                </header>
-                <div className="text-base leading-relaxed text-slate-800">
-                  {summary}
-                </div>
-                <div className="mt-2 text-[11px]">
-                  <Link href={`/articles/${slug}`} className="font-bold uppercase hover:underline text-slate-900 text-[12px]">
-                    Continue reading &raquo;
-                  </Link>
-                </div>
-              </article>
-            ))
-          ) : (
-            <p className="italic text-slate-500">No articles found yet. Check back soon.</p>
-          )}
-        </div>
-      </section>
+    <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+      {/* Center */}
+      <main style={{ flex: 1, overflowY: "auto", padding: "32px", minWidth: 0 }}>
+        <h2 className="section-heading">Recent Write-ups</h2>
 
-      <section>
-        <h2 className="text-xl font-bold border-b-2 border-slate-800 pb-1 mb-4">Latest Products</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-serif">
-          <div className="bg-[#f8f8f0] border border-[#ccc] p-3 h-full flex flex-col">
-            <h4 className="m-0 font-sans font-bold mb-1 uppercase tracking-tight text-[12px]">Architecture Scan</h4>
-            <p className="m-0 mb-3 flex-grow italic text-slate-700 text-[15px]">Autonomous tool for deep repository analysis and architectural validation.</p>
-            <Link href="/tools/architecture-scan" className="font-sans font-bold text-[12px] uppercase hover:underline">Launch Product &raquo;</Link>
-          </div>
-          <div className="bg-[#f8f8f0] border border-[#ccc] p-3 h-full flex flex-col">
-            <h4 className="m-0 font-sans font-bold mb-1 uppercase tracking-tight text-[12px]">Sumvela Engine</h4>
-            <p className="m-0 mb-3 flex-grow italic text-slate-700 text-[15px]">High-performance .NET calculation engine for complex formulas and business logic.</p>
-            <a href="https://sumvela.com" target="_blank" rel="noopener noreferrer" className="font-sans font-bold text-[12px] uppercase hover:underline">Visit Sumvela &raquo;</a>
-          </div>
+        {posts.length > 0 ? (
+          posts.map(({ slug, date, title, summary, tags }) => (
+            <article key={slug} className="article-card">
+              <h3 className="article-card-title">
+                <Link href={`/articles/${slug}`}>{title}</Link>
+              </h3>
+              <div className="article-card-meta">
+                <span>{date}</span>
+                {tags.map((tag) => (
+                  <span key={tag} className="tag">{tag}</span>
+                ))}
+              </div>
+              <p className="article-card-summary">{summary}</p>
+              <Link href={`/articles/${slug}`} className="read-more">
+                Read write-up &rarr;
+              </Link>
+            </article>
+          ))
+        ) : (
+          <p style={{ fontStyle: "italic", color: "var(--g500)" }}>No write-ups yet.</p>
+        )}
+      </main>
+
+      {/* Right panel */}
+      <aside style={{
+        width: "272px",
+        flexShrink: 0,
+        overflowY: "auto",
+        borderLeft: "1px solid var(--g300)",
+        padding: "24px",
+        background: "var(--oat)",
+      }}>
+        <div className="right-section">
+          <p className="right-section-heading">Knowledge Map</p>
+          <table className="props-table">
+            <tbody>
+              <tr><td>Domains</td><td>{TOPIC_GROUPS.length}</td></tr>
+              <tr><td>Topics</td><td>{totalTopics}</td></tr>
+              <tr><td>Write-ups</td><td>{posts.length}</td></tr>
+              <tr><td>Covered</td><td>{linkedTopics} topics</td></tr>
+            </tbody>
+          </table>
         </div>
-      </section>
+
+        <div className="right-section">
+          <p className="right-section-heading">Domains</p>
+          <ul className="related-list">
+            {TOPIC_GROUPS.map((g) => (
+              <li key={g.id} style={{ justifyContent: "space-between" }}>
+                <span>
+                  <span style={{ color: "var(--olive-dark)", marginRight: "6px" }}>{g.icon}</span>
+                  {g.label}
+                </span>
+                <span style={{ fontSize: "10px", color: "var(--g500)" }}>{g.entries.length}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="right-section">
+          <p className="right-section-heading">About</p>
+          <p className="right-notes">
+            A curated knowledge base on software architecture and system design.
+            Select a topic from the left panel to explore write-ups.
+          </p>
+        </div>
+      </aside>
     </div>
   );
 }

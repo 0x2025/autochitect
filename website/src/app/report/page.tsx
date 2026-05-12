@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
-import { Button } from "@/components/ui";
+import { useState, useRef, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import Mermaid from "@/components/mermaid";
-import { useSearchParams, useRouter } from "next/navigation";
-import { Lock, FileText, Activity, AlertTriangle, CheckCircle2, ChevronRight, Download } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { FileText, Activity, Download } from "lucide-react";
 
 interface Finding {
     id: string;
@@ -15,8 +14,6 @@ interface Finding {
     impact: string;
     files: string[];
     recommendation: string;
-    valid?: boolean;
-    rationale?: string;
     evidenceCode?: string;
 }
 
@@ -47,54 +44,10 @@ export default function ReportPage() {
 
 function ReportContent() {
     const [report, setReport] = useState<StructuredReport | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [validatedFindings, setValidatedFindings] = useState<Record<string, { valid: boolean, rationale: string }>>({});
     const [expandedFinding, setExpandedFinding] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"c1" | "c2" | "c3">("c1");
-    const [isSavingMoat, setIsSavingMoat] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const searchParams = useSearchParams();
     const router = useRouter();
-    const repoId = searchParams.get("repoId");
-    const source = searchParams.get("source");
-
-    useEffect(() => {
-        if (repoId) {
-            fetchReport(repoId);
-        } else if (source === "local") {
-            const temp = localStorage.getItem("temp_report");
-            if (temp) {
-                try {
-                    setReport(JSON.parse(temp));
-                } catch (e) {
-                    console.error("Failed to parse local report");
-                }
-            }
-        }
-    }, [repoId, source]);
-
-    const [error, setError] = useState<string | null>(null);
-
-    const fetchReport = async (id: string) => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const res = await fetch(`/api/reports/${id}`);
-            if (res.ok) {
-                const data = await res.json();
-                setReport(data);
-            } else if (res.status === 403) {
-                setError("Access Denied: You do not have permission to view this private report.");
-            } else {
-                console.error("Report not found or not yet completed");
-            }
-        } catch (err) {
-            console.error("Failed to load report");
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -112,44 +65,9 @@ function ReportContent() {
         }
     };
 
-    const handleMoatConfirmation = async (finding: Finding, isValid: boolean) => {
-        setIsSavingMoat(finding.id);
-        try {
-            const res = await fetch("/api/moat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    finding,
-                    is_valid: isValid,
-                    tech_stack: report?.discoveredLanguages || []
-                })
-            });
-
-            if (res.ok) {
-                setValidatedFindings(prev => ({
-                    ...prev,
-                    [finding.id]: { valid: isValid, rationale: "Saved to Moat" }
-                }));
-            } else {
-                alert("Failed to save validation status");
-            }
-        } catch (err) {
-            alert("Error connecting to validation service");
-        } finally {
-            setIsSavingMoat(null);
-        }
-    };
-
     const handleExport = () => {
         if (!report) return;
-        const finalReport = {
-            ...report,
-            findings: report.findings.map(f => ({
-                ...f,
-                ...validatedFindings[f.id]
-            }))
-        };
-        const blob = new Blob([JSON.stringify(finalReport, null, 2)], { type: "application/json" });
+        const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -175,32 +93,6 @@ function ReportContent() {
             default: return "border-slate-400 text-slate-400";
         }
     };
-
-    if (isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 py-20">
-                <p className="text-slate-500 text-[10px] font-bold tracking-widest uppercase animate-pulse italic">Generating Autonomous Report</p>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="max-w-xl mx-auto py-20 px-4 text-center space-y-6">
-                <div className="inline-flex p-4 border border-red-200 bg-red-50/50 text-red-600 mb-4">
-                    <Lock size={32} />
-                </div>
-                <h2 className="text-2xl font-serif italic text-slate-900">{error}</h2>
-                <p className="text-sm text-slate-600 font-serif leading-relaxed">This scan contains private information and is only available to the authorized repository owner.</p>
-                <button 
-                    onClick={() => router.push("/")}
-                    className="bg-slate-800 text-white px-8 h-10 text-[11px] font-bold uppercase tracking-widest"
-                >
-                    &laquo; Exit to Dashboard
-                </button>
-            </div>
-        );
-    }
 
     if (!report) {
         return (
@@ -240,12 +132,11 @@ function ReportContent() {
                         &laquo; Back to Product
                     </button>
                     <h1 className="text-3xl font-serif italic m-0">Architecture Report</h1>
-                    <div className="flex flex-wrap items-center gap-4 text-xs font-serif text-slate-600">
-                        <span className="flex items-center gap-1"><Activity size={14} /> ID: {repoId || "Local"}</span>
-                        {report.repoUrl && (
-                            <span className="border-l border-slate-300 pl-4 truncate max-w-xs">{report.repoUrl}</span>
-                        )}
-                    </div>
+                    {report.repoUrl && (
+                        <div className="flex flex-wrap items-center gap-4 text-xs font-serif text-slate-600">
+                            <span className="flex items-center gap-1"><Activity size={14} /> {report.repoUrl}</span>
+                        </div>
+                    )}
                 </div>
                 <button
                     onClick={handleExport}
@@ -322,10 +213,9 @@ function ReportContent() {
                                 key={finding.id}
                                 className={cn(
                                     "border-l-4 p-5 space-y-4",
-                                    finding.criticality === "CRITICAL" ? "border-red-600" : 
+                                    finding.criticality === "CRITICAL" ? "border-red-600" :
                                     finding.criticality === "HIGH" ? "border-orange-600" :
-                                    finding.criticality === "MEDIUM" ? "border-amber-600" : "border-slate-400",
-                                    validatedFindings[finding.id] && "opacity-60 grayscale bg-slate-50"
+                                    finding.criticality === "MEDIUM" ? "border-amber-600" : "border-slate-400"
                                 )}
                             >
                                 <div className="flex items-start justify-between gap-4">
@@ -349,7 +239,7 @@ function ReportContent() {
                                         onClick={() => setExpandedFinding(expandedFinding === finding.id ? null : finding.id)}
                                         className="text-[10px] font-bold text-slate-400 hover:text-slate-800 uppercase tracking-widest transition-colors"
                                     >
-                                        {expandedFinding === finding.id ? "Minimize &laquo;" : "Details &raquo;"}
+                                        {expandedFinding === finding.id ? "Minimize «" : "Details »"}
                                     </button>
                                 </div>
 
@@ -388,37 +278,6 @@ function ReportContent() {
                                                     <code>{finding.evidenceCode}</code>
                                                 </pre>
                                             </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {!validatedFindings[finding.id] ? (
-                                    <div className="pt-2 flex items-center gap-4">
-                                        <button
-                                            disabled={isSavingMoat === finding.id}
-                                            onClick={() => handleMoatConfirmation(finding, true)}
-                                            className="px-6 py-1.5 bg-slate-800 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all flex items-center gap-2"
-                                        >
-                                            <CheckCircle2 size={12} /> {isSavingMoat === finding.id ? "Saving..." : "Accept Finding"}
-                                        </button>
-                                        <button
-                                            disabled={isSavingMoat === finding.id}
-                                            onClick={() => handleMoatConfirmation(finding, false)}
-                                            className="px-6 py-1.5 border border-slate-300 text-slate-400 text-[10px] font-bold uppercase tracking-widest hover:text-red-600 hover:border-red-600 transition-all flex items-center gap-2"
-                                        >
-                                            <AlertTriangle size={12} /> Dismiss
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="pt-2 flex items-center gap-2">
-                                        {validatedFindings[finding.id].valid ? (
-                                            <span className="text-[10px] font-bold uppercase text-emerald-700 bg-emerald-50 px-3 py-1 border border-emerald-100 flex items-center gap-1.5">
-                                                <CheckCircle2 size={12} /> Validated to Knowledge Base
-                                            </span>
-                                        ) : (
-                                            <span className="text-[10px] font-bold uppercase text-red-700 bg-red-50 px-3 py-1 border border-red-100 flex items-center gap-1.5">
-                                                <AlertTriangle size={12} /> Dismissed Analysis
-                                            </span>
                                         )}
                                     </div>
                                 )}

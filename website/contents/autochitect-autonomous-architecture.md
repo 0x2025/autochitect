@@ -3,6 +3,22 @@ title: "Autochitect: Use AI Agent for scanning your Architecture"
 date: "2026-03-16"
 summary: "Intro to Autochitect, my experiment to use AI agents for keeping an eye on your code and finding architectural issues."
 tags: ["AI", "Architecture", "Autochitect", "Agentic"]
+properties:
+  - label: "Type"
+    value: "Agentic System"
+  - label: "Core Tech"
+    value: "LangGraph, LLM, Vector Store"
+  - label: "Pattern"
+    value: "Autonomous Agent Loop"
+  - label: "Maturity"
+    value: "Experimental / POC"
+notes: "Treats architecture review as a continuous automated process rather than a periodic manual task. The learning loop improves signal quality over time via human feedback."
+related:
+  - "Symbol Graph Compression"
+  - "LangGraph State Machine"
+  - "Context Window Management"
+  - "Lesson Store (Vector Memory)"
+  - "Agentic Workflows"
 ---
 
 # Autochitect: Use AI Agent for scanning your Architecture

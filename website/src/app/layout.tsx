@@ -1,11 +1,32 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Providers, ProvidersContent } from "./providers";
+import { Inter, Lora, JetBrains_Mono } from "next/font/google";
+import { Providers } from "./providers";
 import Link from "next/link";
+import { TopicBrowser } from "@/components/topic-browser";
+import { getSortedPostsData } from "@/lib/posts";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const lora = Lora({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "autochitect.com | Autonomous Architecture, Code, AI",
-  description: "Autonomous Architecture: Random thoughts on software architecture, code, and the AI era.",
+  title: "autochitect | Software Architecture & Engineering",
+  description: "A knowledge base for software architecture, system design, and engineering craft.",
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -17,59 +38,87 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
+  const posts = getSortedPostsData();
+
   return (
-    <html lang="en">
-      <body className="antialiased">
+    <html lang="en" style={{ height: "100%" }} className={`${inter.variable} ${lora.variable} ${jetbrainsMono.variable}`}>
+      <body style={{ height: "100%", margin: 0 }}>
         <Providers>
-          <div className="lwn-container">
-            <header className="lwn-header">
-              <p className="text-sm font-sans tracking-tight text-slate-500 uppercase">
-                Autonomous Architecture: Random thoughts on software architecture, code, and the AI era
-              </p>
-            </header>
-            <div className="flex flex-col md:flex-row">
-              <aside className="lwn-sidebar">
-                <section className="mb-6">
-                  <h3 className="text-sm font-bold uppercase mt-0 mb-2 border-b border-black">Menu</h3>
-                  <ul className="list-none p-0 m-0 space-y-1">
-                    <li><Link href="/" className="hover:bg-[#d0d0c0]">Home</Link></li>
-                    <li><Link href="/archives" className="hover:bg-[#d0d0c0]">Archives</Link></li>
-                  </ul>
-                </section>
+          {/* Full-viewport explorer shell */}
+          <div style={{ height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
-                <section className="mb-6">
-                  <h3 className="text-sm font-bold uppercase mt-4 mb-2 border-b border-black">Products</h3>
-                  <ul className="list-none p-0 m-0 space-y-1">
-                    <li><Link href="/tools/architecture-scan" className="hover:bg-[#d0d0c0]">Architecture Scan</Link></li>
-                  </ul>
-                </section>
-
-                <section>
-                  <h3 className="text-sm font-bold uppercase mt-4 mb-2 border-b border-black">Focus</h3>
-                  <p className="text-[13px] leading-relaxed">
-                    My software products and random thoughts. AI is not going to replace software engineer. It is going to shift us to be more architect and system design.
+            {/* ── Top bar ─────────────────────────────────────────── */}
+            <header style={{
+              flexShrink: 0,
+              height: "56px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "0 24px",
+              background: "var(--white)",
+              borderBottom: "1px solid var(--g300)",
+              zIndex: 10,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{
+                  width: "36px", height: "36px", borderRadius: "8px",
+                  background: "var(--clay)", color: "var(--white)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontFamily: "var(--font-serif, Georgia, serif)", fontWeight: 700, fontSize: "18px", flexShrink: 0,
+                }}>A</div>
+                <div>
+                  <p style={{ fontFamily: "var(--font-serif, Georgia, serif)", fontSize: "20px", fontWeight: 700, color: "var(--slate)", margin: 0, lineHeight: 1 }}>
+                    autochitect
                   </p>
-                </section>
-                <section className="mt-8 pt-4 border-t border-black">
-                  <h3 className="text-sm font-bold uppercase mb-2 border-b border-black">Account</h3>
-                  <div className="text-[13px]">
-                    <ProvidersContent />
-                  </div>
-                </section>
-              </aside>
-              <main className="lwn-main-column">
-                <div className="lwn-content">
-                  {children}
+                  <p style={{ fontFamily: "var(--font-sans, ui-sans-serif, sans-serif)", fontSize: "11px", fontStyle: "italic", color: "var(--clay-text)", margin: "2px 0 0", lineHeight: 1 }}>
+                    Explore software architecture ◆
+                  </p>
                 </div>
-              </main>
+              </div>
+
+              <nav>
+                <ul style={{ display: "flex", alignItems: "center", gap: "32px", listStyle: "none", margin: 0, padding: 0 }}>
+                  {[
+                    { href: "/", icon: "⊞", label: "Home" },
+                    { href: "/archives", icon: "☰", label: "Archives" },
+                  ].map(({ href, icon, label }) => (
+                    <li key={href}>
+                      <Link href={href} className="topbar-nav-link">
+                        <span style={{ fontSize: "18px", lineHeight: 1 }}>{icon}</span>
+                        {label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            </header>
+
+            {/* ── Body: left + content ─────────────────────────────── */}
+            <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+              <TopicBrowser posts={posts} />
+
+              {/* Center + right content (each page fills this) */}
+              <div style={{ flex: 1, display: "flex", overflow: "hidden", background: "var(--white)" }}>
+                {children}
+              </div>
             </div>
-            <footer className="border-t border-slate-300 p-4 text-[12px] text-center font-sans text-slate-400">
-              &copy; 2026 autochitect.com by <a href="https://www.linkedin.com/in/sangcu/" target="_blank" rel="noopener noreferrer" className="hover:underline">Sang</a>
-              <br />
-              Build and maintain by Open SWE
+
+            {/* ── Footer ──────────────────────────────────────────── */}
+            <footer style={{
+              flexShrink: 0,
+              borderTop: "1px solid var(--g300)",
+              padding: "10px 24px",
+              textAlign: "center",
+              fontFamily: "var(--font-sans, ui-sans-serif, sans-serif)",
+              fontSize: "11px",
+              color: "var(--g500)",
+              background: "var(--white)",
+            }}>
+              &copy; 2026 autochitect.com &mdash; by{" "}
+              <a href="https://www.linkedin.com/in/sangcu/" target="_blank" rel="noopener noreferrer"
+                style={{ color: "var(--g500)" }}>Sang</a>
+              {" "}&middot;{" "}Built and maintained by Open SWE
             </footer>
           </div>
         </Providers>

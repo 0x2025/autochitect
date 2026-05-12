@@ -1,16 +1,15 @@
-import Link from 'next/link';
+import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <h2 className="text-4xl font-bold mb-4 font-sans uppercase tracking-tight">404 - Page Not Found</h2>
-      <p className="text-lg text-slate-700 font-serif italic mb-8 max-w-md">
-        The page you are looking for does not exist or has been moved to a different location.
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "var(--space-12) 0", textAlign: "center" }}>
+      <h2 style={{ fontFamily: "var(--font-serif, Georgia, serif)", fontSize: "32px", color: "var(--slate)", marginBottom: "var(--space-4)" }}>
+        404
+      </h2>
+      <p style={{ fontFamily: "var(--font-sans, ui-sans-serif, sans-serif)", fontSize: "15px", color: "var(--g500)", marginBottom: "var(--space-8)", maxWidth: "380px" }}>
+        This page doesn&apos;t exist or has moved.
       </p>
-      <Link 
-        href="/" 
-        className="lwn-btn no-underline px-6 py-2"
-      >
+      <Link href="/" className="btn-primary">
         Return Home
       </Link>
     </div>
