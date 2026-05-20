@@ -15,11 +15,10 @@ export const TOPIC_GROUPS: TopicGroup[] = [
   {
     id: 'network',
     icon: '⬡',
-    label: 'Network Model',
+    label: 'Networking',
     entries: [
-      { id: 'osi', label: 'OSI Model' },
-      { id: 'tcp-ip', label: 'TCP/IP Stack' },
-      { id: 'sockets', label: 'Sockets' },
+      { id: 'tcp-ip', label: 'TCP/IP 4-Layer', articleSlug: 'tcp-ip-4-layer' },
+      { id: 'sockets', label: 'Sockets', articleSlug: 'sockets' },
       { id: 'http2', label: 'HTTP/2 & HTTP/3' },
     ],
   },
